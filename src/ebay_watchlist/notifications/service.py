@@ -50,8 +50,8 @@ class NotificationService:
         try:
             self._client.send(message=message, title=title, tags=tags, actions=actions)
         except MessageSendError:
-            # Maybe log or re-raise
-            pass
+            print(f"Failed to send notification. Title: {title} - Content: {message}")
+            print(e)
 
     def send_grouped_notification(self, items: list[Item]):
         counts_by_seller = Counter([item.seller_name for item in items])
@@ -67,19 +67,10 @@ class NotificationService:
         actions = []
 
         if WEBSERVICE_URL is not None:
-            for seller_name in counts_by_seller.keys():
-                actions.append(
-                    ViewAction(
-                        f"Items by: {seller_name}",
-                        urljoin(
-                            WEBSERVICE_URL,
-                            SELLER_URI_TEMPLATE.format(seller_name=seller_name),
-                        ),
-                    )
-                )  # Maybe deeplink to seller view
+            actions.append(ViewAction("View all items", WEBSERVICE_URL))
 
         try:
             self._client.send(message=message, title=title, tags=tags, actions=actions)
-        except MessageSendError:
-            # Maybe log or re-raise
-            pass
+        except MessageSendError as e:
+            print(f"Failed to send notification. Title: {title} - Content: {message}")
+            print(e)
