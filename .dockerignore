@@ -12,3 +12,5 @@ dist/
 notebooks/
 *.sqlite3
 .idea
+data/
+images/
