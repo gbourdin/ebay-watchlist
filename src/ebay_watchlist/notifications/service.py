@@ -68,9 +68,6 @@ class NotificationService:
 
         if WEBSERVICE_URL is not None:
             for seller_name in counts_by_seller.keys():
-                import ipdb
-
-                ipdb.set_trace()
                 actions.append(
                     ViewAction(
                         f"Items by: {seller_name}",
