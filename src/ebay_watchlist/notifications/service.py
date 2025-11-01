@@ -41,7 +41,8 @@ class NotificationService:
                 ViewAction(
                     f"Items by {item.seller_name}",
                     urljoin(
-                        WEBSERVICE_URL, SELLER_URI_TEMPLATE.format(item.seller_name)
+                        WEBSERVICE_URL,
+                        SELLER_URI_TEMPLATE.format(seller_name=item.seller_name),
                     ),
                 )
             )
@@ -67,11 +68,15 @@ class NotificationService:
 
         if WEBSERVICE_URL is not None:
             for seller_name in counts_by_seller.keys():
+                import ipdb
+
+                ipdb.set_trace()
                 actions.append(
                     ViewAction(
                         f"Items by: {seller_name}",
                         urljoin(
-                            WEBSERVICE_URL, SELLER_URI_TEMPLATE.format(seller_name)
+                            WEBSERVICE_URL,
+                            SELLER_URI_TEMPLATE.format(seller_name=seller_name),
                         ),
                     )
                 )  # Maybe deeplink to seller view
