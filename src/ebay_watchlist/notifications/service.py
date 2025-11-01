@@ -1,10 +1,13 @@
 import os
 from collections import Counter
+from urllib.parse import urljoin
+
 from python_ntfy import NtfyClient, MessageSendError, ViewAction
 from ebay_watchlist.db.models import Item
 
 NTFY_TOPIC = os.getenv("NTFY_TOPIC_ID")
 WEBSERVICE_URL = os.getenv("WEBSERVICE_URL", None)
+SELLER_URI_TEMPLATE = "/sellers/{seller_name}"
 
 
 class NotificationService:
@@ -35,8 +38,13 @@ class NotificationService:
 
         if WEBSERVICE_URL is not None:
             actions.append(
-                ViewAction("View all items", WEBSERVICE_URL)
-            )  # Could deeplink to seller or category
+                ViewAction(
+                    f"Items by {item.seller_name}",
+                    urljoin(
+                        WEBSERVICE_URL, SELLER_URI_TEMPLATE.format(item.seller_name)
+                    ),
+                )
+            )
 
         try:
             self._client.send(message=message, title=title, tags=tags, actions=actions)
@@ -58,9 +66,15 @@ class NotificationService:
         actions = []
 
         if WEBSERVICE_URL is not None:
-            actions.append(
-                ViewAction("View all items", WEBSERVICE_URL)
-            )  # Maybe deeplink to seller view
+            for seller_name in counts_by_seller.keys():
+                actions.append(
+                    ViewAction(
+                        f"Items by: {seller_name}",
+                        urljoin(
+                            WEBSERVICE_URL, SELLER_URI_TEMPLATE.format(seller_name)
+                        ),
+                    )
+                )  # Maybe deeplink to seller view
 
         try:
             self._client.send(message=message, title=title, tags=tags, actions=actions)
