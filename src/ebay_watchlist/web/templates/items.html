@@ -145,11 +145,21 @@
                                 </td>
 
                                 <td class="col-seller text-nowrap">
-                                    {{ item.seller_name }}
+                                    <a
+                                        href="/sellers/{{ item.seller_name }}"
+                                        class="link-primary link-underline-opacity-0 link-underline-opacity-100-hover fw-semibold"
+                                    >
+                                        {{ item.seller_name }}
+                                    </a>
                                 </td>
 
                                 <td class="col-category">
-                                    {{ item.category_name }}
+                                    <a
+                                        href="/categories/{{ item.category_id }}"
+                                        class="link-primary link-underline-opacity-0 link-underline-opacity-100-hover fw-semibold"
+                                    >
+                                        {{ item.category_name }}
+                                    </a>
                                 </td>
 
                                 <td class="col-posted text-nowrap text-muted" style="font-size:.85rem;">

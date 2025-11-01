@@ -71,7 +71,7 @@ def show_latest_items(limit: int = 50, category: int | None = None):
     """
     if category:
         display_db_items(
-            ItemRepository.get_latest_items_for_category(
+            ItemRepository.get_latest_items_for_scraped_category(
                 category_id=category, limit=limit
             )
         )

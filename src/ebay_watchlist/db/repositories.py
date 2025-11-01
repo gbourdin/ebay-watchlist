@@ -69,11 +69,42 @@ class ItemRepository:
         return Item.select().order_by(Item.creation_date.desc()).limit(limit)
 
     @staticmethod
-    def get_latest_items_for_category(category_id: int, limit: int = 50) -> list[Item]:
-        # TODO: Maybe return DTOs
+    def get_latest_items_for_scraped_category(
+        category_id: int, limit: int = 50
+    ) -> list[Item]:
+        """
+        The scraped category is usually a parent category where the actual
+        item's category may be a few levels down the tree.
+
+        This filter is intended to be used to get items in the parent category
+        """
         return (
             Item.select()
             .where(Item.scraped_category_id == category_id)
+            .order_by(Item.creation_date.desc())
+            .limit(limit)
+        )
+
+    @staticmethod
+    def get_latest_items_for_category(category_id: int, limit: int = 50) -> list[Item]:
+        """
+        The scraped category is usually a parent category where the actual
+        item's category may be a few levels down the tree.
+
+        This filter is intended to be used to get items in the leaf category
+        """
+        return (
+            Item.select()
+            .where(Item.category_id == category_id)
+            .order_by(Item.creation_date.desc())
+            .limit(limit)
+        )
+
+    @staticmethod
+    def get_latest_items_for_seller(seller_name: str, limit: int = 50) -> list[Item]:
+        return (
+            Item.select()
+            .where(Item.seller_name == seller_name)
             .order_by(Item.creation_date.desc())
             .limit(limit)
         )
