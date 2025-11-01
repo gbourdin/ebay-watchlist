@@ -1,0 +1,46 @@
+# This is an example docker compose file that will run the service.
+# If using this as provided, make sure that your env file has DATABASE_URL=/data/yourdb.sqlite3
+
+services:
+  daemon:
+    restart: always
+    container_name: ebay-watchlist-daemon
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ./data:/data  # Create a volume for the shared database
+    logging:  # Don't store logs forever
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    env_file:
+      - .env
+    command: ["ebay-watchlist", "run-loop"]
+
+  frontend:
+    restart: always
+    container_name: ebay-watchlist-frontend
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ./data:/data  # Create a volume for the shared database
+    ports:
+      - "5000:5000"
+    expose:
+      - 5000
+    logging: # Don't store logs forever
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    env_file:
+      - .env
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:5000/status" ]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+    command: ["ebay-watchlist", "run-flask", "--host", "0.0.0.0"]
