@@ -302,6 +302,7 @@ dependencies = [
     { name = "peewee" },
     { name = "pydantic" },
     { name = "python-dotenv" },
+    { name = "python-ntfy" },
     { name = "requests" },
     { name = "typer" },
 ]
@@ -322,6 +323,7 @@ requires-dist = [
     { name = "peewee", specifier = ">=3.18.2" },
     { name = "pydantic", specifier = ">=2.12.3" },
     { name = "python-dotenv", specifier = ">=1.2.1" },
+    { name = "python-ntfy", specifier = ">=0.10.1" },
     { name = "requests", specifier = ">=2.32.5" },
     { name = "typer", specifier = ">=0.20.0" },
 ]
@@ -1130,6 +1132,18 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/29/bf/eca6a3d43db1dae7070f70e160ab20b807627ba953663ba07928cdd3dc58/python_json_logger-4.0.0.tar.gz", hash = "sha256:f58e68eb46e1faed27e0f574a55a0455eecd7b8a5b88b85a784519ba3cff047f", size = 17683, upload-time = "2025-10-06T04:15:18.984Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/51/e5/fecf13f06e5e5f67e8837d777d1bc43fac0ed2b77a676804df5c34744727/python_json_logger-4.0.0-py3-none-any.whl", hash = "sha256:af09c9daf6a813aa4cc7180395f50f2a9e5fa056034c9953aec92e381c5ba1e2", size = 15548, upload-time = "2025-10-06T04:15:17.553Z" },
+]
+
+[[package]]
+name = "python-ntfy"
+version = "0.10.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "requests" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/15/91/9d201b5ce535e96c9b16963979363c272ab9b3d378bed97353fc3b966a1c/python_ntfy-0.10.1.tar.gz", hash = "sha256:263b4a0351d1f8cc8e05a89dd756b2fe240176ffd2600c2ecca51580bcd197ed", size = 7052, upload-time = "2025-10-01T14:36:38.712Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/12/47/190fbb5d6f7c0f4ebb1cd8964799946516e52ba6085b6a6b28390c75e102/python_ntfy-0.10.1-py3-none-any.whl", hash = "sha256:6963a7753007d5767ee241227879426776277323900f2ac4c942299cce7fae2e", size = 8269, upload-time = "2025-10-01T14:36:37.572Z" },
 ]
 
 [[package]]

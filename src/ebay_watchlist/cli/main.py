@@ -14,6 +14,7 @@ from ebay_watchlist.db.repositories import (
     SellerRepository,
 )
 from ebay_watchlist.ebay.api import EbayAPI
+from ebay_watchlist.notifications.service import NotificationService
 from ebay_watchlist.web.app import create_app
 
 app = typer.Typer(no_args_is_help=True)
@@ -29,9 +30,15 @@ def fetch_updates(limit: int = 100):
     EBAY_CLIENT_ID = os.getenv("EBAY_CLIENT_ID")
     EBAY_CLIENT_SECRET = os.getenv("EBAY_CLIENT_SECRET")
     EBAY_MARKETPLACE_ID = os.getenv("EBAY_MARKETPLACE_ID", "EBAY_GB")
+    ENABLE_NOTIFICATIONS = os.getenv("ENABLE_NOTIFICATIONS", "False").lower() in (
+        "true",
+        "1",
+        "t",
+    )
 
     run_start_date = datetime.now()
     api = EbayAPI(EBAY_CLIENT_ID, EBAY_CLIENT_SECRET, EBAY_MARKETPLACE_ID)
+    notification_service = NotificationService()
     watched_sellers = SellerRepository.get_enabled_sellers()
     enabled_categories = CategoryRepository.get_enabled_categories()
 
@@ -52,6 +59,8 @@ def fetch_updates(limit: int = 100):
 
     if created_items:
         display_db_items(created_items)
+        if ENABLE_NOTIFICATIONS:
+            notification_service.notify_new_items(created_items)
 
 
 @app.command()

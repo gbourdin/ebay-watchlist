@@ -1,0 +1,69 @@
+import os
+from collections import Counter
+from python_ntfy import NtfyClient, MessageSendError, ViewAction
+from ebay_watchlist.db.models import Item
+
+NTFY_TOPIC = os.getenv("NTFY_TOPIC_ID")
+WEBSERVICE_URL = os.getenv("WEBSERVICE_URL", None)
+
+
+class NotificationService:
+    def __init__(self):
+        self._client = NtfyClient(topic=NTFY_TOPIC)
+
+    def notify_new_items(self, items: list[Item]):
+        if len(items) < 3:
+            for item in items:
+                self.send_individual_notification(item)
+        else:
+            self.send_grouped_notification(items)
+
+    def send_individual_notification(self, item: Item):
+        title = f"New item from {item.seller_name}"
+
+        price = item.current_bid_price if item.current_bid_price else item.price
+        currency = (
+            item.current_bid_price_currency
+            if item.current_bid_price_currency
+            else item.price_currency
+        )
+
+        message = f"{item.title}\nCurrent Price: {price} {currency}"
+
+        tags = ["rotating_light"]
+        actions = [ViewAction("View on ebay", item.web_url)]
+
+        if WEBSERVICE_URL is not None:
+            actions.append(
+                ViewAction("View all items", WEBSERVICE_URL)
+            )  # Could deeplink to seller or category
+
+        try:
+            self._client.send(message=message, title=title, tags=tags, actions=actions)
+        except MessageSendError:
+            # Maybe log or re-raise
+            pass
+
+    def send_grouped_notification(self, items: list[Item]):
+        counts_by_seller = Counter([item.seller_name for item in items])
+        title = f"{len(items)} new items published"
+        message = "\n".join(
+            [
+                f"{count} items from: {username}"
+                for (username, count) in counts_by_seller.items()
+            ]
+        )
+
+        tags = ["rotating_light"]
+        actions = []
+
+        if WEBSERVICE_URL is not None:
+            actions.append(
+                ViewAction("View all items", WEBSERVICE_URL)
+            )  # Maybe deeplink to seller view
+
+        try:
+            self._client.send(message=message, title=title, tags=tags, actions=actions)
+        except MessageSendError:
+            # Maybe log or re-raise
+            pass
