@@ -1,21 +1,62 @@
-ebay-watchlist
----------------
+# ebay-watchlist
 
-This is a personal project to help me keep track of ebay auctions
-published by a select list of sellers in very specific categories.
+Track newly listed eBay auctions from selected sellers and categories, store results in SQLite, and browse them in a Flask UI.
 
-I built this because I wanted to know when my favourite sellers create
-new listings for musical instruments in the hopes of catching a great
-deal without having to manually visit their stores every day.
-
+## Requirements
+- Python 3.14
+- `uv` (dependency and task runner)
 
 ## Setup
+```bash
+cp .env.example .env
+uv sync --dev
+uv run ebay-watchlist config init-database
+uv run ebay-watchlist config load-defaults
+```
 
-## Demo
+Set required credentials in `.env`:
+- `EBAY_CLIENT_ID`
+- `EBAY_CLIENT_SECRET`
 
-## Design Decisions
+## Run Locally
+```bash
+uv run ebay-watchlist fetch-updates --limit 100
+uv run ebay-watchlist run-flask --host 127.0.0.1 --port 8000 --debug
+```
 
-## Q&A
+Other useful commands:
+- `uv run ebay-watchlist show-latest-items --limit 50`
+- `uv run ebay-watchlist run-loop`
+- `uv run ebay-watchlist config --help`
 
-## Contributing
+## Web UI Highlights
+- Named quick filters in the header (`Musical Instruments`, `Computers`, `Videogames`).
+- Multi-select autocomplete tag filters for sellers, main categories, and categories.
+- Category suggestions are scoped to selected main categories (based on tracked listings).
+- Tag filters apply automatically as you add/remove tags; no apply/reset buttons.
+- Search submits when pressing Enter in the search box.
+- Filter panel is collapsible, starts collapsed, and persists state via local storage.
+- Sort includes `Ending Soon` and excludes already-ended items.
+- Table/Cards view toggle and full pagination controls (100 items per page by default).
 
+## Quality Checks
+```bash
+make lint
+make typecheck
+make test
+make ci
+```
+
+Direct equivalents:
+- `uv run ruff check src`
+- `uv run ty check src`
+- `uv run pytest -q`
+
+GitHub Actions (`.github/workflows/ci.yml`) runs lint, type checking, and unit tests on pushes and pull requests.
+
+## Docker
+`docker-compose.yml` includes a production-oriented example. Adjust build paths, volume paths, and env file paths for your environment.
+
+## Troubleshooting
+- If `fetch-updates` fails, verify `EBAY_CLIENT_ID` and `EBAY_CLIENT_SECRET`.
+- If the UI is empty, run `fetch-updates` first and confirm `DATABASE_URL`.

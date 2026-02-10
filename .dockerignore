@@ -15,3 +15,5 @@ notebooks/
 .idea
 data/
 images/
+docs/
+docker-compose.yml

@@ -1,12 +1,140 @@
 from datetime import datetime
 
-from peewee import DoesNotExist
+from peewee import DoesNotExist, fn
 
 from ebay_watchlist.db.models import Item, WatchedCategory, WatchedSeller
 from ebay_watchlist.ebay.dtos import EbayItem
 
 
 class ItemRepository:
+    @staticmethod
+    def _build_filtered_query(
+        seller_names: list[str] | None = None,
+        category_names: list[str] | None = None,
+        scraped_category_ids: list[int] | None = None,
+        search_query: str | None = None,
+    ):
+        query = Item.select()
+
+        if seller_names:
+            query = query.where(Item.seller_name.in_(seller_names))
+
+        if category_names:
+            query = query.where(Item.category_name.in_(category_names))
+
+        if scraped_category_ids:
+            query = query.where(Item.scraped_category_id.in_(scraped_category_ids))
+
+        if search_query:
+            query = query.where(Item.title.contains(search_query))
+
+        return query
+
+    @staticmethod
+    def get_filtered_items(
+        seller_names: list[str] | None = None,
+        category_names: list[str] | None = None,
+        scraped_category_ids: list[int] | None = None,
+        search_query: str | None = None,
+        sort: str = "newest",
+        limit: int = 50,
+        offset: int = 0,
+    ) -> list[Item]:
+        query = ItemRepository._build_filtered_query(
+            seller_names=seller_names,
+            category_names=category_names,
+            scraped_category_ids=scraped_category_ids,
+            search_query=search_query,
+        )
+
+        if sort == "ending_soon":
+            query = query.where(Item.end_date >= datetime.now())
+            query = query.order_by(Item.end_date.asc())
+        elif sort == "price_low":
+            query = query.order_by(Item.current_bid_price.asc())
+        elif sort == "price_high":
+            query = query.order_by(Item.current_bid_price.desc())
+        else:
+            query = query.order_by(Item.creation_date.desc())
+
+        return query.offset(offset).limit(limit)
+
+    @staticmethod
+    def count_filtered_items(
+        seller_names: list[str] | None = None,
+        category_names: list[str] | None = None,
+        scraped_category_ids: list[int] | None = None,
+        search_query: str | None = None,
+        sort: str = "newest",
+    ) -> int:
+        query = ItemRepository._build_filtered_query(
+            seller_names=seller_names,
+            category_names=category_names,
+            scraped_category_ids=scraped_category_ids,
+            search_query=search_query,
+        )
+        if sort == "ending_soon":
+            query = query.where(Item.end_date >= datetime.now())
+        return query.count()
+
+    @staticmethod
+    def get_distinct_seller_names() -> list[str]:
+        query = (
+            Item.select(Item.seller_name)
+            .distinct()
+            .order_by(Item.seller_name.asc())
+        )
+        return [str(item.seller_name) for item in query if item.seller_name]
+
+    @staticmethod
+    def get_distinct_category_names(
+        scraped_category_ids: list[int] | None = None,
+    ) -> list[str]:
+        query = Item.select(Item.category_name)
+        if scraped_category_ids:
+            query = query.where(Item.scraped_category_id.in_(scraped_category_ids))
+        query = query.distinct().order_by(Item.category_name.asc())
+        return [str(item.category_name) for item in query if item.category_name]
+
+    @staticmethod
+    def get_distinct_scraped_category_ids() -> list[int]:
+        query = (
+            Item.select(Item.scraped_category_id)
+            .distinct()
+            .order_by(Item.scraped_category_id.asc())
+        )
+        return [int(item.scraped_category_id) for item in query]
+
+    @staticmethod
+    def get_scraped_category_suggestions() -> list[tuple[int, str]]:
+        query = (
+            Item.select(
+                Item.scraped_category_id,
+                fn.MIN(Item.category_name).alias("category_label"),
+            )
+            .group_by(Item.scraped_category_id)
+            .order_by(Item.scraped_category_id.asc())
+        )
+        return [
+            (
+                int(item.scraped_category_id),
+                str(getattr(item, "category_label")),
+            )
+            for item in query
+        ]
+
+    @staticmethod
+    def get_category_name_by_id(category_id: int) -> str | None:
+        item = (
+            Item.select(Item.category_name)
+            .where(Item.category_id == category_id)
+            .order_by(Item.creation_date.desc())
+            .first()
+        )
+        if item is None:
+            return None
+        return str(item.category_name)
+
     @staticmethod
     def create_or_update_item_from_ebay_item_dto(
         item_dto: EbayItem, scraped_category_id: int
@@ -20,12 +148,29 @@ class ItemRepository:
 
         db_item.item_id = item_dto.item_id
         db_item.title = item_dto.title
-        db_item.category_id = item_dto.main_category
-        db_item.category_name = next(
-            category.categoryName
-            for category in item_dto.categories
-            if category.categoryId == db_item.category_id
-        )
+
+        # eBay payloads can omit or mismatch category ids; keep writes resilient.
+        resolved_category_id = item_dto.main_category
+        if resolved_category_id is None:
+            if item_dto.categories:
+                resolved_category_id = item_dto.categories[0].categoryId
+            else:
+                resolved_category_id = scraped_category_id
+
+        db_item.category_id = int(resolved_category_id)
+
+        if item_dto.main_category is None and item_dto.categories:
+            db_item.category_name = item_dto.categories[0].categoryName
+        else:
+            db_item.category_name = next(
+                (
+                    category.categoryName
+                    for category in item_dto.categories
+                    if category.categoryId == db_item.category_id
+                ),
+                "Unknown",
+            )
+
         db_item.scraped_category_id = scraped_category_id
         db_item.image_url = item_dto.image
         db_item.seller_name = item_dto.seller.username

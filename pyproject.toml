@@ -24,7 +24,9 @@ dev = [
     "ipython>=9.6.0",
     "isort>=7.0.0",
     "jupyterlab>=4.4.10",
+    "pytest>=8.4.2",
     "ruff>=0.14.2",
+    "ty",
 ]
 
 [project.scripts]
@@ -33,3 +35,9 @@ ebay-watchlist = "ebay_watchlist.cli.main:main"
 [build-system]
 requires = ["uv_build>=0.9.6,<0.10.0"]
 build-backend = "uv_build"
+
+[tool.ty.src]
+include = ["src", "tests"]
+
+[tool.ty.rules]
+invalid-argument-type = "warn"
