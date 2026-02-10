@@ -1,11 +1,15 @@
 import base64
+import logging
 
 import requests
+from pydantic import ValidationError
 
 from ebay_watchlist.ebay.dtos import EbayItem
 
 SEARCH_API_ENDPOINT = "https://api.ebay.com/buy/browse/v1/item_summary/search"
 OAUTH_TOKEN_URL = "https://api.ebay.com/identity/v1/oauth2/token"
+HTTP_TIMEOUT_SECONDS = 20
+logger = logging.getLogger(__name__)
 
 
 class EbayAPI:
@@ -45,7 +49,9 @@ class EbayAPI:
             "scope": "https://api.ebay.com/oauth/api_scope",
         }
 
-        auth_data = self.session.post(OAUTH_TOKEN_URL, headers=headers, data=data)
+        auth_data = self.session.post(
+            OAUTH_TOKEN_URL, headers=headers, data=data, timeout=HTTP_TIMEOUT_SECONDS
+        )
         auth_data.raise_for_status()
         token_info = auth_data.json()
 
@@ -79,17 +85,24 @@ class EbayAPI:
             "limit": limit,
         }
 
-        request = self.session.get(SEARCH_API_ENDPOINT, params=params)
+        request = self.session.get(
+            SEARCH_API_ENDPOINT, params=params, timeout=HTTP_TIMEOUT_SECONDS
+        )
 
         if request.status_code == 401:
             self.authenticated = False
-            return []  # Need a way to communicate to caller or retry
+            self._authenticate()
+            request = self.session.get(
+                SEARCH_API_ENDPOINT, params=params, timeout=HTTP_TIMEOUT_SECONDS
+            )
+            if request.status_code == 401:
+                raise requests.HTTPError("Unauthorized after re-authentication")
 
         # Intentionally unhandled, so failures for something other than authentication are loud
         request.raise_for_status()
 
         results = request.json()
-        items = results.get("itemSummaries")
+        items = results.get("itemSummaries", [])
         ebay_items = self.parse_items(items)
 
         return ebay_items
@@ -105,28 +118,52 @@ class EbayAPI:
         return f"{buying_options_filter},{sellers_filter}"
 
     @staticmethod
-    def parse_items(json_items: list[dict]) -> list[EbayItem]:
+    def parse_items(json_items: list[dict] | None) -> list[EbayItem]:
+        if not json_items:
+            return []
+
         ebay_items = []
 
         for item in json_items:
-            ebay_item = EbayItem(
-                item_id=item.get("itemId"),
-                title=item.get("title"),
-                main_category=item.get("leafCategoryIds", [])[0],
-                categories=item.get("categories", []),
-                image=item.get("image", {}).get("imageUrl", None),
-                seller=item.get("seller"),
-                condition=item.get("condition"),
-                shipping_options=item.get("shippingOptions"),
-                buying_options=item.get("buyingOptions"),
-                price=item.get("price", None),
-                current_bid_price=item.get("currentBidPrice", None),
-                bid_count=item.get("bidCount", 0),
-                web_url=item.get("itemWebUrl"),
-                origin_date=item.get("itemOriginDate"),
-                creation_date=item.get("itemCreationDate"),
-                end_date=item.get("itemEndDate"),
-            )
+            if not isinstance(item, dict):
+                logger.warning("Skipping non-dict item payload: %r", item)
+                continue
+
+            leaf_category_ids = item.get("leafCategoryIds")
+            main_category = None
+            if isinstance(leaf_category_ids, list) and leaf_category_ids:
+                main_category = leaf_category_ids[0]
+
+            image_info = item.get("image")
+            image_url = None
+            if isinstance(image_info, dict):
+                image_url = image_info.get("imageUrl")
+
+            try:
+                ebay_item = EbayItem.model_validate(
+                    {
+                        "item_id": item.get("itemId"),
+                        "title": item.get("title"),
+                        "main_category": main_category,
+                        "categories": item.get("categories", []),
+                        "image": image_url,
+                        "seller": item.get("seller"),
+                        "condition": item.get("condition"),
+                        "shipping_options": item.get("shippingOptions"),
+                        "buying_options": item.get("buyingOptions", []),
+                        "price": item.get("price", None),
+                        "current_bid_price": item.get("currentBidPrice", None),
+                        "bid_count": item.get("bidCount", 0),
+                        "web_url": item.get("itemWebUrl"),
+                        "origin_date": item.get("itemOriginDate"),
+                        "creation_date": item.get("itemCreationDate"),
+                        "end_date": item.get("itemEndDate"),
+                    }
+                )
+            except ValidationError:
+                logger.warning("Skipping invalid item payload: %r", item, exc_info=True)
+                continue
+
             ebay_items.append(ebay_item)
 
         return ebay_items

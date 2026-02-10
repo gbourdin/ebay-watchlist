@@ -4,6 +4,7 @@ from time import sleep
 
 import typer
 from dotenv import load_dotenv
+from peewee import OperationalError
 
 from ebay_watchlist.cli.display_utils import display_db_items, print_with_timestamp
 from ebay_watchlist.cli.management import management_app
@@ -35,6 +36,8 @@ def fetch_updates(limit: int = 100):
         "1",
         "t",
     )
+    if not EBAY_CLIENT_ID or not EBAY_CLIENT_SECRET:
+        raise ValueError("EBAY_CLIENT_ID and EBAY_CLIENT_SECRET must be set")
 
     run_start_date = datetime.now()
     api = EbayAPI(EBAY_CLIENT_ID, EBAY_CLIENT_SECRET, EBAY_MARKETPLACE_ID)
@@ -103,10 +106,15 @@ def run_flask(host: str | None = None, port: int | None = None, debug: bool = Fa
 
 
 def main():
-    database.connect()
     load_dotenv()
-    app()
-    database.close()
+    database.connect(reuse_if_open=True)
+    try:
+        app()
+    finally:
+        try:
+            database.close()
+        except OperationalError:
+            pass
 
 
 if __name__ == "__main__":
