@@ -1,5 +1,5 @@
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 from time import sleep
 
 import typer
@@ -20,6 +20,9 @@ from ebay_watchlist.web.app import create_app
 
 app = typer.Typer(no_args_is_help=True)
 app.add_typer(management_app, name="config", help="Database configuration commands")
+DEFAULT_CLEANUP_RETENTION_DAYS = 30
+DEFAULT_CLEANUP_INTERVAL_MINUTES = 24 * 60
+FETCH_INTERVAL_SECONDS = 600
 
 
 @app.command()
@@ -83,14 +86,50 @@ def show_latest_items(limit: int = 50, category: int | None = None):
 
 
 @app.command()
-def run_loop():
+def cleanup_expired_items(retention_days: int = DEFAULT_CLEANUP_RETENTION_DAYS) -> int:
     """
-    Daemon mode. Runs in a loop fetching updates every 10 minutes
+    Delete items that ended more than N days ago.
     """
+    if retention_days < 1:
+        raise ValueError("retention_days must be at least 1")
+
+    cutoff = datetime.now() - timedelta(days=retention_days)
+    deleted = ItemRepository.delete_items_ended_before(cutoff)
+    print_with_timestamp(
+        f"[bold green]:heavy_check_mark:[/bold green] {deleted} expired items deleted (older than {retention_days} days)"
+    )
+    return deleted
+
+
+@app.command()
+def run_loop(
+    cleanup_retention_days: int = DEFAULT_CLEANUP_RETENTION_DAYS,
+    cleanup_interval_minutes: int = DEFAULT_CLEANUP_INTERVAL_MINUTES,
+):
+    """
+    Daemon mode. Runs in a loop fetching updates every 10 minutes and
+    periodically removes expired items from the DB.
+    """
+    if cleanup_interval_minutes < 1:
+        raise ValueError("cleanup_interval_minutes must be at least 1")
+
+    next_cleanup_at: datetime | None = None
     while True:
         try:
             fetch_updates()
-            sleep(600)
+
+            now = datetime.now()
+            if next_cleanup_at is None or now >= next_cleanup_at:
+                try:
+                    cleanup_expired_items(retention_days=cleanup_retention_days)
+                except Exception as exc:
+                    print_with_timestamp(
+                        f"[bold yellow]:warning:[/bold yellow] Cleanup failed: {exc}"
+                    )
+
+                next_cleanup_at = now + timedelta(minutes=cleanup_interval_minutes)
+
+            sleep(FETCH_INTERVAL_SECONDS)
         except KeyboardInterrupt:
             print_with_timestamp(
                 "[bold yellow]:warning:[/bold yellow] User interrupted."
