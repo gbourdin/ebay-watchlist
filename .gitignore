@@ -217,3 +217,9 @@ __marimo__/
 
 # DBS
 *.sqlite3
+
+# Local Experiments
+notebooks/
+
+# AI Agent Plans
+docs/plans/
