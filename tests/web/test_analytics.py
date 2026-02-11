@@ -85,8 +85,6 @@ def test_analytics_page_shows_metrics_and_rankings(temp_db):
 
     ItemRepository.update_item_state("a1", favorite=True)
     ItemRepository.update_item_state("b1", hidden=True)
-    ItemRepository.update_item_state("c1", notified=True)
-
     app = create_app()
     client = app.test_client()
     response = client.get("/analytics")
@@ -98,7 +96,6 @@ def test_analytics_page_shows_metrics_and_rankings(temp_db):
     assert b'id="metric-new-last-7-days">3<' in response.data
     assert b'id="metric-hidden-items">1<' in response.data
     assert b'id="metric-favorite-items">1<' in response.data
-    assert b'id="metric-notified-items">1<' in response.data
 
     assert b"alice" in response.data
     assert b"carol" in response.data

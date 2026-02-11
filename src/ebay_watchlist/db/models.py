@@ -54,7 +54,6 @@ class ItemState(BaseModel):
     )
     hidden = BooleanField(default=False)
     favorite = BooleanField(default=False)
-    notified = BooleanField(default=False)
     db_update_date = DateTimeField(default=datetime.now)
 
 

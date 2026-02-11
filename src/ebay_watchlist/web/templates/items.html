@@ -171,9 +171,23 @@
                 <p class="text-light text-opacity-75 mb-0">Auctions from your selected sellers and categories</p>
             </div>
 
-            <div class="d-flex flex-wrap gap-2 align-items-center">
-                <a href="{{ url_for('main.manage_watchlist') }}" class="btn btn-light btn-sm">Manage Watchlist</a>
-                <a href="{{ url_for('main.analytics') }}" class="btn btn-outline-light btn-sm">Analytics</a>
+            <div class="d-flex flex-wrap gap-2 align-items-center justify-content-end">
+                <div class="dropdown">
+                    <button
+                        id="admin-menu-toggle"
+                        class="btn btn-light btn-sm dropdown-toggle"
+                        type="button"
+                        data-bs-toggle="dropdown"
+                        aria-expanded="false"
+                        aria-label="Admin menu"
+                    >
+                        &#9776;
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="admin-menu-toggle">
+                        <li><a class="dropdown-item" href="{{ url_for('main.manage_watchlist') }}">Manage Watchlist</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('main.analytics') }}">Analytics</a></li>
+                    </ul>
+                </div>
                 {% if quick_category_filters %}
                     {% for category_id, category_name in quick_category_filters %}
                         <a href="{{ url_for('main.items_by_parent_category', category_id=category_id) }}" class="btn btn-outline-light btn-sm">
@@ -298,7 +312,6 @@
                                     </h2>
                                     <div class="d-flex flex-wrap gap-1 mb-2">
                                         {% if item.favorite %}<span class="badge text-bg-warning">Favorite</span>{% endif %}
-                                        {% if item.notified %}<span class="badge text-bg-info">Notified</span>{% endif %}
                                         {% if item.hidden %}<span class="badge text-bg-secondary">Hidden</span>{% endif %}
                                     </div>
                                     <div class="small text-muted mb-2">Seller: <a href="{{ url_for('main.items_by_seller', seller_name=item.seller_name) }}">{{ item.seller_name }}</a></div>
@@ -318,12 +331,6 @@
                                             <input type="hidden" name="value" value="{{ 0 if item.favorite else 1 }}">
                                             <input type="hidden" name="next" value="{{ current_path }}">
                                             <button type="submit" class="btn btn-outline-warning btn-sm">{% if item.favorite %}Unfavorite{% else %}Favorite{% endif %}</button>
-                                        </form>
-                                        <form method="post" action="{{ url_for('main.update_item_state', item_id=item.item_id) }}" class="m-0">
-                                            <input type="hidden" name="field" value="notified">
-                                            <input type="hidden" name="value" value="{{ 0 if item.notified else 1 }}">
-                                            <input type="hidden" name="next" value="{{ current_path }}">
-                                            <button type="submit" class="btn btn-outline-info btn-sm">{% if item.notified %}Clear Notified{% else %}Mark Notified{% endif %}</button>
                                         </form>
                                         <form method="post" action="{{ url_for('main.update_item_state', item_id=item.item_id) }}" class="m-0">
                                             <input type="hidden" name="field" value="hidden">
@@ -394,7 +401,6 @@
                                 <td class="text-nowrap">
                                     <div class="d-flex flex-wrap gap-1">
                                         {% if item.favorite %}<span class="badge text-bg-warning">Favorite</span>{% endif %}
-                                        {% if item.notified %}<span class="badge text-bg-info">Notified</span>{% endif %}
                                         {% if item.hidden %}<span class="badge text-bg-secondary">Hidden</span>{% endif %}
                                     </div>
                                 </td>
@@ -411,12 +417,6 @@
                                             <input type="hidden" name="value" value="{{ 0 if item.favorite else 1 }}">
                                             <input type="hidden" name="next" value="{{ current_path }}">
                                             <button type="submit" class="btn btn-outline-warning btn-sm">{% if item.favorite %}Unfav{% else %}Fav{% endif %}</button>
-                                        </form>
-                                        <form method="post" action="{{ url_for('main.update_item_state', item_id=item.item_id) }}" class="m-0">
-                                            <input type="hidden" name="field" value="notified">
-                                            <input type="hidden" name="value" value="{{ 0 if item.notified else 1 }}">
-                                            <input type="hidden" name="next" value="{{ current_path }}">
-                                            <button type="submit" class="btn btn-outline-info btn-sm">{% if item.notified %}Clear{% else %}Notify{% endif %}</button>
                                         </form>
                                         <form method="post" action="{{ url_for('main.update_item_state', item_id=item.item_id) }}" class="m-0">
                                             <input type="hidden" name="field" value="hidden">

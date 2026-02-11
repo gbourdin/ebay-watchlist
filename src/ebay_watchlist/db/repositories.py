@@ -275,7 +275,6 @@ class ItemRepository:
         item_id: str,
         hidden: bool | None = None,
         favorite: bool | None = None,
-        notified: bool | None = None,
     ) -> ItemState:
         state, _ = ItemState.get_or_create(item_id=item_id)
 
@@ -283,8 +282,6 @@ class ItemRepository:
             state.hidden = hidden
         if favorite is not None:
             state.favorite = favorite
-        if notified is not None:
-            state.notified = notified
 
         state.db_update_date = datetime.now()
         state.save()
@@ -322,7 +319,6 @@ class ItemRepository:
 
         hidden_items = ItemState.select().where(ItemState.hidden).count()
         favorite_items = ItemState.select().where(ItemState.favorite).count()
-        notified_items = ItemState.select().where(ItemState.notified).count()
 
         top_seller_rows = (
             Item.select(
@@ -359,7 +355,6 @@ class ItemRepository:
             "new_last_7_days": new_last_7_days,
             "hidden_items": hidden_items,
             "favorite_items": favorite_items,
-            "notified_items": notified_items,
             "top_sellers": top_sellers,
             "top_categories": top_categories,
         }

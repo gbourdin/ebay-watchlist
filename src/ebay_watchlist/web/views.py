@@ -244,7 +244,6 @@ def home():
         state = state_by_item_id.get(str(item.item_id))
         item.hidden = bool(state.hidden) if state is not None else False
         item.favorite = bool(state.favorite) if state is not None else False
-        item.notified = bool(state.notified) if state is not None else False
 
     base_filter_pairs = build_filter_pairs(
         selected_sellers=selected_sellers,
@@ -396,8 +395,6 @@ def update_item_state(item_id: str):
             ItemRepository.update_item_state(item_id=item_id, hidden=value)
         elif field == "favorite":
             ItemRepository.update_item_state(item_id=item_id, favorite=value)
-        elif field == "notified":
-            ItemRepository.update_item_state(item_id=item_id, notified=value)
 
     return redirect(next_url)
 

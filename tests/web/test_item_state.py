@@ -43,7 +43,7 @@ def test_home_hides_items_marked_hidden(temp_db):
     assert b"Hidden Item" not in response.data
 
 
-def test_state_endpoint_can_toggle_favorite_and_notified(temp_db):
+def test_state_endpoint_can_toggle_favorite(temp_db):
     insert_item("s2", "Stateful Item")
 
     app = create_app()
@@ -54,16 +54,9 @@ def test_state_endpoint_can_toggle_favorite_and_notified(temp_db):
         data={"field": "favorite", "value": "1", "next": "/"},
         follow_redirects=True,
     )
-    response_notified = client.post(
-        "/items/s2/state",
-        data={"field": "notified", "value": "1", "next": "/"},
-        follow_redirects=True,
-    )
-
     assert response_favorite.status_code == 200
-    assert response_notified.status_code == 200
-    assert b"Favorite" in response_notified.data
-    assert b"Notified" in response_notified.data
+    assert b"Favorite" in response_favorite.data
+    assert b"Notified" not in response_favorite.data
 
 
 def test_state_endpoint_can_hide_then_unhide_item(temp_db):

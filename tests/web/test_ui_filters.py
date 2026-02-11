@@ -227,6 +227,19 @@ def test_home_filter_bar_does_not_show_apply_or_reset_buttons(temp_db):
     assert b"Reset" not in response.data
 
 
+def test_home_uses_hamburger_admin_menu(temp_db):
+    app = create_app()
+    client = app.test_client()
+
+    response = client.get("/")
+
+    assert response.status_code == 200
+    assert b'id="admin-menu-toggle"' in response.data
+    assert b'data-bs-toggle="dropdown"' in response.data
+    assert b"Manage Watchlist" in response.data
+    assert b"Analytics" in response.data
+
+
 def test_home_search_submits_only_on_enter(temp_db):
     app = create_app()
     client = app.test_client()
