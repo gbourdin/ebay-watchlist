@@ -221,6 +221,11 @@ __marimo__/
 # Local git worktrees
 .worktrees/
 
+# Frontend tooling artifacts
+frontend/node_modules/
+frontend/dist/
+frontend/playwright-report/
+
 # Local Experiments
 notebooks/
 
