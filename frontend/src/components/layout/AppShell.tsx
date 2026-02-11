@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 
 import Navbar from "./Navbar";
@@ -5,7 +6,11 @@ import Sidebar from "./Sidebar";
 
 const SIDEBAR_STORAGE_KEY = "ebay-watchlist.sidebar.open";
 
-export default function AppShell() {
+interface AppShellProps {
+  children?: ReactNode;
+}
+
+export default function AppShell({ children }: AppShellProps) {
   const [desktopSidebarOpen, setDesktopSidebarOpen] = useState<boolean>(() => {
     if (typeof window === "undefined") {
       return true;
@@ -62,8 +67,14 @@ export default function AppShell() {
             data-sidebar-open={desktopSidebarOpen ? "true" : "false"}
             className="min-w-0 flex-1 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:p-6"
           >
-            <h1 className="text-lg font-semibold text-slate-900">Latest Items</h1>
-            <p className="mt-2 text-sm text-slate-600">Table and card views are coming next.</p>
+            {children ?? (
+              <>
+                <h1 className="text-lg font-semibold text-slate-900">Latest Items</h1>
+                <p className="mt-2 text-sm text-slate-600">
+                  Table and card views are coming next.
+                </p>
+              </>
+            )}
           </main>
         </div>
       </div>

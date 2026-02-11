@@ -1,0 +1,70 @@
+import type { ItemRow } from "../api";
+
+interface HybridListViewProps {
+  items: ItemRow[];
+  onToggleFavorite: (item: ItemRow) => void;
+  onToggleHidden: (item: ItemRow) => void;
+}
+
+export default function HybridListView({
+  items,
+  onToggleFavorite,
+  onToggleHidden,
+}: HybridListViewProps) {
+  return (
+    <div data-testid="view-hybrid" className="space-y-3">
+      {items.length === 0 && (
+        <div className="rounded-xl border border-slate-200 bg-white p-10 text-center text-slate-500">
+          No items found.
+        </div>
+      )}
+      {items.map((item) => (
+        <article
+          key={item.item_id}
+          className="grid gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:grid-cols-[120px_minmax(0,1fr)_130px]"
+        >
+          <img
+            src={item.image_url}
+            alt={item.title}
+            className="h-[120px] w-[120px] rounded-lg object-cover"
+            loading="lazy"
+          />
+          <div className="space-y-2">
+            <a
+              href={item.web_url}
+              target="_blank"
+              rel="noreferrer"
+              className="text-lg font-semibold text-blue-700 hover:underline"
+            >
+              {item.title}
+            </a>
+            <p className="text-sm text-slate-600">
+              {item.seller} · {item.category}
+            </p>
+            <p className="text-sm text-slate-600">Ends {item.ends_in}</p>
+          </div>
+          <div className="space-y-2">
+            <p className="text-lg font-semibold text-slate-900">
+              {item.price} {item.currency}
+            </p>
+            <p className="text-sm text-slate-600">{item.bids} bids</p>
+            <button
+              type="button"
+              onClick={() => onToggleFavorite(item)}
+              className="inline-flex w-full justify-center rounded-md border border-amber-400 px-2 py-1 text-xs font-semibold text-amber-700 transition hover:bg-amber-100"
+            >
+              Fav
+            </button>
+            <button
+              type="button"
+              onClick={() => onToggleHidden(item)}
+              className="inline-flex w-full justify-center rounded-md border border-slate-400 px-2 py-1 text-xs font-semibold text-slate-700 transition hover:bg-slate-100"
+            >
+              Hide
+            </button>
+          </div>
+        </article>
+      ))}
+    </div>
+  );
+}
