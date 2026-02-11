@@ -75,6 +75,14 @@ def _serialize_item(item: Item) -> dict[str, str | float | int | bool]:
     }
 
 
+def _parse_boolean_value() -> tuple[bool | None, tuple[dict[str, str], int] | None]:
+    payload = request.get_json(silent=True) or {}
+    value = payload.get("value")
+    if not isinstance(value, bool):
+        return None, ({"error": "value must be a boolean"}, 400)
+    return value, None
+
+
 @bp.route("/items")
 def items():
     _ = connect_db()
@@ -146,3 +154,33 @@ def items():
             "sort": sort,
         }
     )
+
+
+@bp.route("/items/<item_id>/favorite", methods=["POST"])
+def update_favorite(item_id: str):
+    _ = connect_db()
+    if Item.get_or_none(item_id=item_id) is None:
+        return jsonify({"error": "item not found"}), 404
+
+    value, error = _parse_boolean_value()
+    if error is not None:
+        body, status = error
+        return jsonify(body), status
+
+    state = ItemRepository.update_item_state(item_id=item_id, favorite=value)
+    return jsonify({"item_id": item_id, "favorite": bool(state.favorite)})
+
+
+@bp.route("/items/<item_id>/hide", methods=["POST"])
+def update_hidden(item_id: str):
+    _ = connect_db()
+    if Item.get_or_none(item_id=item_id) is None:
+        return jsonify({"error": "item not found"}), 404
+
+    value, error = _parse_boolean_value()
+    if error is not None:
+        body, status = error
+        return jsonify(body), status
+
+    state = ItemRepository.update_item_state(item_id=item_id, hidden=value)
+    return jsonify({"item_id": item_id, "hidden": bool(state.hidden)})
