@@ -227,6 +227,7 @@ frontend/dist/
 frontend/playwright-report/
 frontend/.playwright-browsers/
 frontend/test-results/
+frontend/*.tsbuildinfo
 
 # Local Experiments
 notebooks/

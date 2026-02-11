@@ -2,8 +2,8 @@ FROM node:25-slim AS node_runtime
 
 FROM python:3.14-slim
 
-# Add curl for healt-checks
-RUN apt update && apt install -y curl && rm -rf /var/lib/apt/lists/*
+# Add runtime libs and curl for health checks.
+RUN apt update && apt install -y curl libatomic1 && rm -rf /var/lib/apt/lists/*
 
 # Copy Node runtime so the same image can run the SPA service as well.
 COPY --from=node_runtime /usr/local/ /usr/local/
