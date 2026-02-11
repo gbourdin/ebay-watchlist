@@ -14,6 +14,8 @@
 - `uv run ebay-watchlist config init-database`: create DB tables.
 - `uv run ebay-watchlist config load-defaults`: seed default sellers/categories.
 - `uv run ebay-watchlist fetch-updates --limit 100`: fetch and persist latest listings.
+- `uv run ebay-watchlist cleanup-expired-items --retention-days 180`: delete items ended before retention window.
+- `uv run ebay-watchlist run-loop --cleanup-retention-days 180 --cleanup-interval-minutes 1440`: daemon fetch + periodic retention cleanup.
 - `uv run ebay-watchlist run-flask --host 127.0.0.1 --port 8000 --debug`: run the local web UI.
 - `make lint`: run Ruff on `src/`.
 - `make typecheck`: run `ty` on `src/`.
@@ -31,7 +33,8 @@
 - Use `pytest`; tests live under `tests/` with `test_<module>.py` naming.
 - Add or update tests for behavior changes (filters, sorting, pagination, repositories, CLI flows).
 - Prefer focused test runs while developing (example: `uv run pytest tests/web/test_ui_filters.py -q`) and run `make ci` before opening a PR.
-- CI in `.github/workflows/ci.yml` enforces Ruff, `ty`, and unit tests on push/PR.
+- CI in `.github/workflows/ci.yml` enforces Ruff, `ty`, and tests with coverage on pushes to `main` and PRs targeting `main`.
+- Release and Docker publish automation lives in `.github/workflows/release.yml` (branch push for `latest`, tag push for versioned images + release notes).
 
 ## Commit & Pull Request Guidelines
 - Follow the existing history style: short imperative subjects like `Add ...`, `Fix ...`, `Remove ...`.

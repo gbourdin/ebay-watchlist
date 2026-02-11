@@ -254,6 +254,10 @@ class ItemRepository:
             .limit(limit)
         )
 
+    @staticmethod
+    def delete_items_ended_before(cutoff: datetime) -> int:
+        return Item.delete().where(Item.end_date < cutoff).execute()
+
 
 class SellerRepository:
     @staticmethod
