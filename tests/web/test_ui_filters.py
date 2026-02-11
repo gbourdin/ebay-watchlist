@@ -1,3 +1,4 @@
+import re
 from datetime import datetime, timedelta
 
 from ebay_watchlist.db.models import Item
@@ -254,7 +255,11 @@ def test_home_uses_external_assets_for_dashboard(temp_db):
     assert b'href="/static/css/items.css"' in response.data
     assert b'src="/static/js/items.js"' in response.data
     assert b"<style>" not in response.data
-    assert b"<script>" not in response.data
+    assert re.search(
+        rb"<script(?![^>]*\bsrc=)[^>]*>",
+        response.data,
+        flags=re.IGNORECASE,
+    ) is None
 
 
 def test_home_does_not_load_google_fonts_cdn(temp_db):
@@ -290,8 +295,6 @@ def test_home_js_search_submits_only_on_enter(temp_db):
 
 
 def test_home_uses_large_image_thumbs_from_stylesheet(temp_db):
-    insert_item("img1", "Image Item", "alice")
-
     app = create_app()
     client = app.test_client()
 
