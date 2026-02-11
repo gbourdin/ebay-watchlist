@@ -172,6 +172,13 @@
             </div>
 
             <div class="d-flex flex-wrap gap-2 align-items-center justify-content-end">
+                {% if quick_category_filters %}
+                    {% for category_id, category_name in quick_category_filters %}
+                        <a href="{{ url_for('main.items_by_parent_category', category_id=category_id) }}" class="btn btn-outline-light btn-sm">
+                            {{ category_name }}
+                        </a>
+                    {% endfor %}
+                {% endif %}
                 <div class="dropdown">
                     <button
                         id="admin-menu-toggle"
@@ -188,13 +195,6 @@
                         <li><a class="dropdown-item" href="{{ url_for('main.analytics') }}">Analytics</a></li>
                     </ul>
                 </div>
-                {% if quick_category_filters %}
-                    {% for category_id, category_name in quick_category_filters %}
-                        <a href="{{ url_for('main.items_by_parent_category', category_id=category_id) }}" class="btn btn-outline-light btn-sm">
-                            {{ category_name }}
-                        </a>
-                    {% endfor %}
-                {% endif %}
             </div>
         </div>
     </header>

@@ -238,6 +238,9 @@ def test_home_uses_hamburger_admin_menu(temp_db):
     assert b'data-bs-toggle="dropdown"' in response.data
     assert b"Manage Watchlist" in response.data
     assert b"Analytics" in response.data
+    assert response.data.index(b"Videogames") < response.data.index(
+        b'id="admin-menu-toggle"'
+    )
 
 
 def test_home_search_submits_only_on_enter(temp_db):
