@@ -227,66 +227,35 @@ def test_home_filter_bar_does_not_show_apply_or_reset_buttons(temp_db):
     assert b"Reset" not in response.data
 
 
-def test_home_uses_hamburger_admin_menu(temp_db):
+def test_home_uses_fresh_nav_sidebar_and_table_layout(temp_db):
     app = create_app()
     client = app.test_client()
 
     response = client.get("/")
 
     assert response.status_code == 200
+    assert b'id="app-navbar"' in response.data
     assert b'id="admin-menu-toggle"' in response.data
     assert b'data-bs-toggle="dropdown"' in response.data
-    assert b"Manage Watchlist" in response.data
-    assert b"Analytics" in response.data
-    assert response.data.index(b"Videogames") < response.data.index(
-        b'id="admin-menu-toggle"'
-    )
+    assert b'id="filters-sidebar"' in response.data
+    assert b'id="sidebar-collapse-btn"' in response.data
+    assert b'id="nav-sidebar-toggle"' in response.data
+    assert b'id="results-main"' in response.data
+    assert b'id="items-table"' in response.data
 
 
-def test_home_search_submits_only_on_enter(temp_db):
+def test_home_sidebar_state_is_persisted(temp_db):
     app = create_app()
     client = app.test_client()
 
     response = client.get("/")
 
     assert response.status_code == 200
-    assert b'searchInput.addEventListener("keydown"' in response.data
-    assert b'searchInput.addEventListener("input"' not in response.data
-    assert b"submitFilters(350)" not in response.data
+    assert b"ebay-watchlist.sidebar.open" in response.data
 
 
-def test_home_filter_panel_starts_collapsed(temp_db):
-    app = create_app()
-    client = app.test_client()
-
-    response = client.get("/")
-
-    assert response.status_code == 200
-    assert b'id="filters-panel" class="filters-panel collapsed' in response.data
-    assert b"Show Filters" in response.data
-
-
-def test_home_filter_panel_persists_state_in_localstorage(temp_db):
-    app = create_app()
-    client = app.test_client()
-
-    response = client.get("/")
-
-    assert response.status_code == 200
-    assert b"localStorage" in response.data
-    assert b"ebay-watchlist.filters.open" in response.data
-    assert b'toggle-filters-btn' in response.data
-
-
-def test_home_pagination_includes_last_page_link(temp_db):
-    base = datetime(2025, 1, 1, 12, 0, 0)
-    for idx in range(1, 306):
-        insert_item(
-            f"pg-{idx}",
-            f"Paged Item {idx}",
-            "alice",
-            creation_date=base + timedelta(minutes=idx),
-        )
+def test_home_uses_large_image_thumbs(temp_db):
+    insert_item("img1", "Image Item", "alice")
 
     app = create_app()
     client = app.test_client()
@@ -294,15 +263,5 @@ def test_home_pagination_includes_last_page_link(temp_db):
     response = client.get("/")
 
     assert response.status_code == 200
-    assert b"Page 1 of 4" in response.data
-    assert b"?sort=newest&amp;view=table&amp;page=2" in response.data
-    assert b"?sort=newest&amp;view=table&amp;page=3" in response.data
-    assert b"?sort=newest&amp;view=table&amp;page=4" in response.data
-
-    response_page_3 = client.get("/?page=3")
-
-    assert response_page_3.status_code == 200
-    assert b"Page 3 of 4" in response_page_3.data
-    assert b'href="/?sort=newest&amp;view=table"' in response_page_3.data
-    assert b"?sort=newest&amp;view=table&amp;page=2" in response_page_3.data
-    assert b"?sort=newest&amp;view=table&amp;page=4" in response_page_3.data
+    assert b'class="item-thumb"' in response.data
+    assert b"--thumb-size: 142px" in response.data

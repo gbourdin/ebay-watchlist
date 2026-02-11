@@ -14,6 +14,7 @@ class ItemRepository:
         scraped_category_ids: list[int] | None = None,
         search_query: str | None = None,
         include_hidden: bool = False,
+        include_favorites_only: bool = False,
     ):
         query = Item.select()
 
@@ -29,10 +30,15 @@ class ItemRepository:
         if search_query:
             query = query.where(Item.title.contains(search_query))
 
+        if include_favorites_only:
+            favorite_item_ids = (
+                ItemState.select(ItemState.item_id).where(ItemState.favorite)
+            )
+            query = query.where(Item.item_id.in_(favorite_item_ids))
+
         if not include_hidden:
             hidden_item_ids = (
-                ItemState.select(ItemState.item_id)
-                .where(ItemState.hidden)
+                ItemState.select(ItemState.item_id).where(ItemState.hidden)
             )
             query = query.where(Item.item_id.not_in(hidden_item_ids))
 
@@ -46,6 +52,7 @@ class ItemRepository:
         search_query: str | None = None,
         sort: str = "newest",
         include_hidden: bool = False,
+        include_favorites_only: bool = False,
         limit: int = 50,
         offset: int = 0,
     ) -> list[Item]:
@@ -55,6 +62,7 @@ class ItemRepository:
             scraped_category_ids=scraped_category_ids,
             search_query=search_query,
             include_hidden=include_hidden,
+            include_favorites_only=include_favorites_only,
         )
 
         if sort == "ending_soon":
@@ -77,6 +85,7 @@ class ItemRepository:
         search_query: str | None = None,
         sort: str = "newest",
         include_hidden: bool = False,
+        include_favorites_only: bool = False,
     ) -> int:
         query = ItemRepository._build_filtered_query(
             seller_names=seller_names,
@@ -84,6 +93,7 @@ class ItemRepository:
             scraped_category_ids=scraped_category_ids,
             search_query=search_query,
             include_hidden=include_hidden,
+            include_favorites_only=include_favorites_only,
         )
         if sort == "ending_soon":
             query = query.where(Item.end_date >= datetime.now())

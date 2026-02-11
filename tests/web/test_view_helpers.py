@@ -42,6 +42,8 @@ def test_build_filter_pairs_includes_multiselects_and_query():
         selected_categories=["Electric Guitars", "Synthesizers"],
         selected_main_categories=["Musical Instruments"],
         search_query="Yamaha",
+        show_hidden=True,
+        show_favorites=True,
     )
 
     assert result == [
@@ -50,6 +52,8 @@ def test_build_filter_pairs_includes_multiselects_and_query():
         ("category", "Synthesizers"),
         ("main_category", "Musical Instruments"),
         ("q", "Yamaha"),
+        ("show_hidden", "1"),
+        ("favorite", "1"),
     ]
 
 

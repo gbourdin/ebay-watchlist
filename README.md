@@ -35,12 +35,14 @@ Other useful commands:
 - `uv run ebay-watchlist config --help`
 
 ## Web UI Highlights
-- Named quick filters in the header (`Musical Instruments`, `Computers`, `Videogames`).
+- Navbar layout with named quick filters (`Musical Instruments`, `Computers`, `Videogames`).
+- Favorites mode via query filter (`/?favorite=1`) with navigation shortcuts.
+- Admin actions are grouped in a right-side hamburger menu.
 - Multi-select autocomplete tag filters for sellers, main categories, and categories.
 - Category suggestions are scoped to selected main categories (based on tracked listings).
 - Tag filters apply automatically as you add/remove tags; no apply/reset buttons.
 - Search submits when pressing Enter in the search box.
-- Filter panel is collapsible, starts collapsed, and persists state via local storage.
+- Filter sidebar collapses to the left on desktop (freeing full width for listings), uses off-canvas on mobile, and persists state via local storage.
 - Sort includes `Ending Soon` and excludes already-ended items.
 - Table/Cards view toggle and full pagination controls (100 items per page by default).
 
