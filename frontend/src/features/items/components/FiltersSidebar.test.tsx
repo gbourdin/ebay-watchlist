@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { expect, test, vi } from "vitest";
+import { beforeEach, expect, test, vi } from "vitest";
 
 import AppShell from "../../../components/layout/AppShell";
+import { fetchSellerSuggestions } from "../api";
 import { parseQueryState } from "../query-state";
 import type { ItemsQueryState } from "../query-state";
 import type { UseItemsQueryResult } from "../useItemsQuery";
@@ -16,6 +17,13 @@ vi.mock("../api", async (importOriginal) => {
     fetchSellerSuggestions: vi.fn().mockResolvedValue({ items: [] }),
     fetchCategorySuggestions: vi.fn().mockResolvedValue({ items: [] }),
   };
+});
+
+const mockedFetchSellerSuggestions = vi.mocked(fetchSellerSuggestions);
+
+beforeEach(() => {
+  mockedFetchSellerSuggestions.mockReset();
+  mockedFetchSellerSuggestions.mockResolvedValue({ items: [] });
 });
 
 function createItemsQueryMock(): UseItemsQueryResult {
@@ -128,4 +136,19 @@ test("mobile layout starts with results visible and filters drawer closed", () =
 
 test("default sort is newest", () => {
   expect(parseQueryState("").sort).toBe("newest");
+});
+
+test("seller input auto-adds on blur when value matches suggestion", async () => {
+  mockedFetchSellerSuggestions.mockResolvedValue({
+    items: [{ value: "alice_shop", label: "alice_shop" }],
+  });
+
+  const user = userEvent.setup();
+  const harness = renderFiltersSidebarHarness();
+
+  await user.type(screen.getByLabelText("Sellers"), "alice_shop");
+  await waitFor(() => expect(mockedFetchSellerSuggestions).toHaveBeenCalled());
+  await user.tab();
+
+  await waitFor(() => expect(harness.getQuery()?.seller).toContain("alice_shop"));
 });

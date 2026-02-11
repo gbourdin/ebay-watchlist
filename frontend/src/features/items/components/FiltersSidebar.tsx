@@ -53,6 +53,21 @@ function removeQueryTag(
   } as Partial<ItemsQueryState>;
 }
 
+function findMatchingOption(input: string, options: string[]): string | null {
+  const cleaned = input.trim();
+  if (!cleaned) {
+    return null;
+  }
+
+  const normalized = cleaned.toLowerCase();
+  for (const option of options) {
+    if (option.toLowerCase() === normalized) {
+      return option;
+    }
+  }
+  return null;
+}
+
 function TagPills({
   values,
   onRemove,
@@ -71,7 +86,7 @@ function TagPills({
           key={value}
           type="button"
           onClick={() => onRemove(value)}
-          className="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700"
+          className="inline-flex items-center rounded-full border border-slate-600 bg-slate-800 px-2.5 py-1 text-xs font-medium text-slate-100"
         >
           {value} ×
         </button>
@@ -168,10 +183,22 @@ export default function FiltersSidebar({ itemsQuery }: FiltersSidebarProps) {
     updateQuery((prev) => removeQueryTag(prev, field, value));
   }
 
+  function tryAddIfMatches(field: MultiField, rawValue: string, options: string[]): boolean {
+    const match = findMatchingOption(rawValue, options);
+    if (!match) {
+      return false;
+    }
+    addTag(field, match);
+    return true;
+  }
+
   return (
     <form className="space-y-4" onSubmit={(event) => event.preventDefault()}>
       <section className="space-y-2">
-        <label className="block text-xs font-semibold uppercase tracking-[0.14em] text-slate-600" htmlFor="filter-sellers">
+        <label
+          className="block text-xs font-semibold uppercase tracking-[0.14em] text-slate-300"
+          htmlFor="filter-sellers"
+        >
           Sellers
         </label>
         <TagPills values={query.seller} onRemove={(value) => removeTag("seller", value)} />
@@ -179,7 +206,20 @@ export default function FiltersSidebar({ itemsQuery }: FiltersSidebarProps) {
           id="filter-sellers"
           list="seller-suggestions"
           value={sellerInput}
-          onChange={(event) => setSellerInput(event.target.value)}
+          onChange={(event) => {
+            const nextValue = event.target.value;
+            setSellerInput(nextValue);
+            const suggestionOptions = sellerSuggestions.map((item) => item.value);
+            if (tryAddIfMatches("seller", nextValue, suggestionOptions)) {
+              setSellerInput("");
+            }
+          }}
+          onBlur={() => {
+            const suggestionOptions = sellerSuggestions.map((item) => item.value);
+            if (tryAddIfMatches("seller", sellerInput, suggestionOptions)) {
+              setSellerInput("");
+            }
+          }}
           onKeyDown={(event) => {
             if (event.key === "Enter") {
               event.preventDefault();
@@ -187,14 +227,17 @@ export default function FiltersSidebar({ itemsQuery }: FiltersSidebarProps) {
               setSellerInput("");
             }
           }}
-          placeholder="Type seller and press Enter"
-          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+          placeholder="Type seller"
+          className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-400"
         />
         <SuggestionsList id="seller-suggestions" suggestions={sellerSuggestions} />
       </section>
 
       <section className="space-y-2">
-        <label className="block text-xs font-semibold uppercase tracking-[0.14em] text-slate-600" htmlFor="filter-main-categories">
+        <label
+          className="block text-xs font-semibold uppercase tracking-[0.14em] text-slate-300"
+          htmlFor="filter-main-categories"
+        >
           Main Categories
         </label>
         <TagPills
@@ -205,7 +248,18 @@ export default function FiltersSidebar({ itemsQuery }: FiltersSidebarProps) {
           id="filter-main-categories"
           list="main-category-suggestions"
           value={mainCategoryInput}
-          onChange={(event) => setMainCategoryInput(event.target.value)}
+          onChange={(event) => {
+            const nextValue = event.target.value;
+            setMainCategoryInput(nextValue);
+            if (tryAddIfMatches("main_category", nextValue, MAIN_CATEGORY_OPTIONS)) {
+              setMainCategoryInput("");
+            }
+          }}
+          onBlur={() => {
+            if (tryAddIfMatches("main_category", mainCategoryInput, MAIN_CATEGORY_OPTIONS)) {
+              setMainCategoryInput("");
+            }
+          }}
           onKeyDown={(event) => {
             if (event.key === "Enter") {
               event.preventDefault();
@@ -213,8 +267,8 @@ export default function FiltersSidebar({ itemsQuery }: FiltersSidebarProps) {
               setMainCategoryInput("");
             }
           }}
-          placeholder="Type main category and press Enter"
-          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+          placeholder="Type main category"
+          className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-400"
         />
         <datalist id="main-category-suggestions">
           {mainCategorySuggestions.map((value) => (
@@ -224,7 +278,10 @@ export default function FiltersSidebar({ itemsQuery }: FiltersSidebarProps) {
       </section>
 
       <section className="space-y-2">
-        <label className="block text-xs font-semibold uppercase tracking-[0.14em] text-slate-600" htmlFor="filter-categories">
+        <label
+          className="block text-xs font-semibold uppercase tracking-[0.14em] text-slate-300"
+          htmlFor="filter-categories"
+        >
           Categories
         </label>
         <TagPills
@@ -235,7 +292,20 @@ export default function FiltersSidebar({ itemsQuery }: FiltersSidebarProps) {
           id="filter-categories"
           list="category-suggestions"
           value={categoryInput}
-          onChange={(event) => setCategoryInput(event.target.value)}
+          onChange={(event) => {
+            const nextValue = event.target.value;
+            setCategoryInput(nextValue);
+            const suggestionOptions = categorySuggestions.map((item) => item.value);
+            if (tryAddIfMatches("category", nextValue, suggestionOptions)) {
+              setCategoryInput("");
+            }
+          }}
+          onBlur={() => {
+            const suggestionOptions = categorySuggestions.map((item) => item.value);
+            if (tryAddIfMatches("category", categoryInput, suggestionOptions)) {
+              setCategoryInput("");
+            }
+          }}
           onKeyDown={(event) => {
             if (event.key === "Enter") {
               event.preventDefault();
@@ -243,14 +313,17 @@ export default function FiltersSidebar({ itemsQuery }: FiltersSidebarProps) {
               setCategoryInput("");
             }
           }}
-          placeholder="Type category and press Enter"
-          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+          placeholder="Type category"
+          className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-400"
         />
         <SuggestionsList id="category-suggestions" suggestions={categorySuggestions} />
       </section>
 
       <section className="space-y-2">
-        <label className="block text-xs font-semibold uppercase tracking-[0.14em] text-slate-600" htmlFor="filter-search">
+        <label
+          className="block text-xs font-semibold uppercase tracking-[0.14em] text-slate-300"
+          htmlFor="filter-search"
+        >
           Search
         </label>
         <input
@@ -258,14 +331,15 @@ export default function FiltersSidebar({ itemsQuery }: FiltersSidebarProps) {
           value={query.q}
           onChange={(event) => updateQuery({ q: event.target.value, page: 1 })}
           placeholder="title contains..."
-          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+          className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-400"
         />
       </section>
 
-      <div className="space-y-2 text-sm text-slate-700">
+      <div className="space-y-2 text-sm text-slate-200">
         <label className="flex items-center gap-2">
           <input
             type="checkbox"
+            className="accent-amber-400"
             checked={query.show_hidden}
             onChange={(event) =>
               updateQuery({ show_hidden: event.target.checked, page: 1 })
@@ -276,6 +350,7 @@ export default function FiltersSidebar({ itemsQuery }: FiltersSidebarProps) {
         <label className="flex items-center gap-2">
           <input
             type="checkbox"
+            className="accent-amber-400"
             checked={query.favorite}
             onChange={(event) =>
               updateQuery({ favorite: event.target.checked, page: 1 })
