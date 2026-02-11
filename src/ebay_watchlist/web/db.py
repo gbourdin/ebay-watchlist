@@ -2,6 +2,7 @@ from flask import g
 from peewee import OperationalError
 
 from ebay_watchlist.db.config import database
+from ebay_watchlist.db.utils import ensure_schema_compatibility
 
 
 def connect_db():
@@ -37,3 +38,4 @@ def init_app(app):
     # Connect DB at startup
     with app.app_context():
         _ = connect_db()
+        ensure_schema_compatibility()
