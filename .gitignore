@@ -225,6 +225,8 @@ __marimo__/
 frontend/node_modules/
 frontend/dist/
 frontend/playwright-report/
+frontend/.playwright-browsers/
+frontend/test-results/
 
 # Local Experiments
 notebooks/
