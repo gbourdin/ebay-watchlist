@@ -1,3 +1,4 @@
+.git
 .venv
 __pycache__/
 *.pyc
@@ -17,3 +18,7 @@ data/
 images/
 docs/
 docker-compose.yml
+.pytest_cache/
+frontend/node_modules/
+frontend/dist/
+frontend/playwright-report/
