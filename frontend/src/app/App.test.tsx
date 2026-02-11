@@ -7,6 +7,32 @@ vi.mock("../features/items/ItemsPage", () => ({
   default: () => <div>Items page</div>,
 }));
 
+vi.mock("../features/items/components/FiltersSidebar", () => ({
+  default: () => <div>Filters sidebar</div>,
+}));
+
+vi.mock("../features/items/useItemsQuery", () => ({
+  useItemsQuery: () => ({
+    query: {
+      seller: [],
+      category: [],
+      main_category: [],
+      q: "",
+      favorite: false,
+      show_hidden: false,
+      sort: "newest",
+      view: "table",
+      page: 1,
+      page_size: 100,
+    },
+    data: null,
+    loading: false,
+    error: null,
+    updateQuery: vi.fn(),
+    resetQuery: vi.fn(),
+  }),
+}));
+
 test("renders app shell landmarks", () => {
   render(<App />);
 

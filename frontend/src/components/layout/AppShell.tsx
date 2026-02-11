@@ -8,9 +8,10 @@ const SIDEBAR_STORAGE_KEY = "ebay-watchlist.sidebar.open";
 
 interface AppShellProps {
   children?: ReactNode;
+  sidebar?: ReactNode;
 }
 
-export default function AppShell({ children }: AppShellProps) {
+export default function AppShell({ children, sidebar }: AppShellProps) {
   const [desktopSidebarOpen, setDesktopSidebarOpen] = useState<boolean>(() => {
     if (typeof window === "undefined") {
       return true;
@@ -47,7 +48,7 @@ export default function AppShell({ children }: AppShellProps) {
                 toggleLabel="Hide"
                 onToggle={() => setDesktopSidebarOpen(false)}
               >
-                <p>Sidebar controls will be implemented in the next tasks.</p>
+                {sidebar ?? <p>Sidebar controls will be implemented in the next tasks.</p>}
               </Sidebar>
             </div>
 
@@ -88,7 +89,7 @@ export default function AppShell({ children }: AppShellProps) {
           >
             <div className="h-full overflow-y-auto p-4">
               <Sidebar heading="Filters" toggleLabel="Close" onToggle={() => setMobileSidebarOpen(false)}>
-                <p>Sidebar controls will be implemented in the next tasks.</p>
+                {sidebar ?? <p>Sidebar controls will be implemented in the next tasks.</p>}
               </Sidebar>
             </div>
           </div>

@@ -11,15 +11,19 @@ import DenseTableView from "./components/DenseTableView";
 import HybridListView from "./components/HybridListView";
 import ItemsToolbar from "./components/ItemsToolbar";
 import CardGridView from "./components/CardGridView";
-import { useItemsQuery } from "./useItemsQuery";
+import { useItemsQuery, type UseItemsQueryResult } from "./useItemsQuery";
 
 type ItemPatch = {
   favorite?: boolean;
   hidden?: boolean;
 };
 
-export default function ItemsPage() {
-  const { query, data, loading, error, updateQuery } = useItemsQuery();
+interface ItemsPageProps {
+  itemsQuery?: UseItemsQueryResult;
+}
+
+export default function ItemsPage({ itemsQuery }: ItemsPageProps) {
+  const { query, data, loading, error, updateQuery } = itemsQuery ?? useItemsQuery();
   const [optimisticState, setOptimisticState] = useState<Record<string, ItemPatch>>({});
   const [actionError, setActionError] = useState<string | null>(null);
 

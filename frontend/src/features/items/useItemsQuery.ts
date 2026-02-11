@@ -8,7 +8,20 @@ import {
   type ItemsQueryState,
 } from "./query-state";
 
-export function useItemsQuery() {
+export type QueryPatch =
+  | Partial<ItemsQueryState>
+  | ((prev: ItemsQueryState) => Partial<ItemsQueryState>);
+
+export interface UseItemsQueryResult {
+  query: ItemsQueryState;
+  data: ItemsResponse | null;
+  loading: boolean;
+  error: string | null;
+  updateQuery: (patch: QueryPatch) => void;
+  resetQuery: () => void;
+}
+
+export function useItemsQuery(): UseItemsQueryResult {
   const [query, setQuery] = useState<ItemsQueryState>(() =>
     parseQueryState(window.location.search)
   );
@@ -54,11 +67,7 @@ export function useItemsQuery() {
     };
   }, [queryString]);
 
-  function updateQuery(
-    patch:
-      | Partial<ItemsQueryState>
-      | ((prev: ItemsQueryState) => Partial<ItemsQueryState>)
-  ) {
+  function updateQuery(patch: QueryPatch) {
     setQuery((prev) => {
       const nextPatch = typeof patch === "function" ? patch(prev) : patch;
       return {
