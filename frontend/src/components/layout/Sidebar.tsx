@@ -4,6 +4,7 @@ interface SidebarProps {
   heading: string;
   toggleLabel: string;
   onToggle: () => void;
+  toggleAriaLabel?: string;
   children?: ReactNode;
 }
 
@@ -11,6 +12,7 @@ export default function Sidebar({
   heading,
   toggleLabel,
   onToggle,
+  toggleAriaLabel,
   children,
 }: SidebarProps) {
   return (
@@ -20,7 +22,7 @@ export default function Sidebar({
         <button
           type="button"
           onClick={onToggle}
-          aria-label="Collapse filters"
+          aria-label={toggleAriaLabel ?? "Collapse filters"}
           className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-600 text-base font-semibold text-slate-100 transition hover:bg-slate-800"
         >
           {toggleLabel}

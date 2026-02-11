@@ -30,7 +30,10 @@ test("sidebar collapses on desktop and becomes drawer on mobile", async () => {
 
   await user.click(screen.getByRole("button", { name: "Open filters" }));
 
-  expect(screen.getByRole("dialog", { name: "Filters" })).toBeInTheDocument();
+  const mobileDialog = screen.getByRole("dialog", { name: "Filters" });
+  expect(mobileDialog).toBeInTheDocument();
+  expect(mobileDialog).toHaveClass("bg-[#040823]", "rounded-2xl");
+  expect(screen.getByRole("button", { name: "Close filters" })).toBeInTheDocument();
 });
 
 test("sidebar hidden state does not reduce table width", async () => {
@@ -76,4 +79,9 @@ test("collapsed rail toggles favorites and hidden actions", async () => {
 
   expect(onToggleFavoritesOnly).toHaveBeenCalledTimes(1);
   expect(onToggleShowHidden).toHaveBeenCalledTimes(1);
+});
+
+test("desktop brand panel does not render right divider", () => {
+  render(<AppShell />);
+  expect(screen.getByTestId("navbar-brand-panel")).not.toHaveClass("border-r");
 });

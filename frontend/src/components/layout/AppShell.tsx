@@ -93,6 +93,7 @@ export default function AppShell({ children, sidebar, railActions }: AppShellPro
                   heading="Filters"
                   toggleLabel="←"
                   onToggle={() => setDesktopSidebarOpen(false)}
+                  toggleAriaLabel="Collapse filters"
                 >
                   {sidebar ?? <p>Sidebar controls will be implemented in the next tasks.</p>}
                 </Sidebar>
@@ -173,14 +174,24 @@ export default function AppShell({ children, sidebar, railActions }: AppShellPro
       </div>
 
       {mobileSidebarOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/45 lg:hidden" role="presentation">
+        <div
+          className="fixed inset-0 z-50 bg-slate-950/55 backdrop-blur-[1px] lg:hidden"
+          role="presentation"
+          onClick={() => setMobileSidebarOpen(false)}
+        >
           <div
             role="dialog"
             aria-label="Filters"
-            className="h-full w-[85vw] max-w-sm border-r border-slate-300 bg-white shadow-xl"
+            onClick={(event) => event.stopPropagation()}
+            className="absolute bottom-3 left-3 top-[4.75rem] w-[min(88vw,360px)] overflow-hidden rounded-2xl border border-slate-700 bg-[#040823] shadow-2xl"
           >
-            <div className="h-full overflow-y-auto p-4">
-              <Sidebar heading="Filters" toggleLabel="Close" onToggle={() => setMobileSidebarOpen(false)}>
+            <div className="h-full overflow-y-auto">
+              <Sidebar
+                heading="Filters"
+                toggleLabel="×"
+                toggleAriaLabel="Close filters"
+                onToggle={() => setMobileSidebarOpen(false)}
+              >
                 {sidebar ?? <p>Sidebar controls will be implemented in the next tasks.</p>}
               </Sidebar>
             </div>
