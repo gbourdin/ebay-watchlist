@@ -4,13 +4,12 @@ on:
   push:
     branches:
       - main
-      - master
     tags:
       - "v*"
 
 jobs:
   build_latest:
-    if: github.ref_type == 'branch' && (github.ref_name == 'main' || github.ref_name == 'master')
+    if: github.ref_type == 'branch' && github.ref_name == 'main'
     runs-on: ubuntu-latest
     permissions:
       contents: read

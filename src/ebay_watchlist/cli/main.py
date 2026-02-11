@@ -20,7 +20,7 @@ from ebay_watchlist.web.app import create_app
 
 app = typer.Typer(no_args_is_help=True)
 app.add_typer(management_app, name="config", help="Database configuration commands")
-DEFAULT_CLEANUP_RETENTION_DAYS = 30
+DEFAULT_CLEANUP_RETENTION_DAYS = 180
 DEFAULT_CLEANUP_INTERVAL_MINUTES = 24 * 60
 FETCH_INTERVAL_SECONDS = 600
 

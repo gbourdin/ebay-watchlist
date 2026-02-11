@@ -34,7 +34,7 @@ def test_cleanup_expired_items_uses_default_retention(monkeypatch):
     deleted = cli_main.cleanup_expired_items()
 
     assert deleted == 7
-    assert captured["cutoff"] == fixed_now - timedelta(days=30)
+    assert captured["cutoff"] == fixed_now - timedelta(days=180)
     assert any("7 expired items deleted" in message for message in messages)
 
 
