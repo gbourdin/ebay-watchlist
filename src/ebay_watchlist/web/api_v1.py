@@ -50,6 +50,22 @@ def _parse_page(raw_value: str | None) -> int:
     return max(1, int(raw_value))
 
 
+def _resolve_main_category_ids(selected_main_categories: list[str]) -> list[int]:
+    main_category_name_by_id = get_main_category_name_by_id(
+        quick_category_filters=QUICK_CATEGORY_FILTERS,
+        scraped_category_suggestions=ItemRepository.get_scraped_category_suggestions(),
+    )
+    main_category_id_by_name = {
+        category_name: category_id
+        for category_id, category_name in main_category_name_by_id.items()
+    }
+    return [
+        main_category_id_by_name[name]
+        for name in selected_main_categories
+        if name in main_category_id_by_name
+    ]
+
+
 def _serialize_item(item: Item) -> dict[str, str | float | int | bool]:
     current_price = item.current_bid_price if item.current_bid_price is not None else item.price
     current_currency = (
@@ -95,19 +111,7 @@ def items():
     include_favorites_only = request.args.get("favorite") == "1"
     sort = _normalize_sort(request.args.get("sort", "newest"))
 
-    main_category_name_by_id = get_main_category_name_by_id(
-        quick_category_filters=QUICK_CATEGORY_FILTERS,
-        scraped_category_suggestions=ItemRepository.get_scraped_category_suggestions(),
-    )
-    main_category_id_by_name = {
-        category_name: category_id
-        for category_id, category_name in main_category_name_by_id.items()
-    }
-    selected_main_category_ids = [
-        main_category_id_by_name[name]
-        for name in selected_main_categories
-        if name in main_category_id_by_name
-    ]
+    selected_main_category_ids = _resolve_main_category_ids(selected_main_categories)
 
     page_size = _parse_page_size(request.args.get("page_size"))
     requested_page = _parse_page(request.args.get("page"))
@@ -184,3 +188,33 @@ def update_hidden(item_id: str):
 
     state = ItemRepository.update_item_state(item_id=item_id, hidden=value)
     return jsonify({"item_id": item_id, "hidden": bool(state.hidden)})
+
+
+@bp.route("/suggestions/sellers")
+def seller_suggestions():
+    _ = connect_db()
+    query = (request.args.get("q") or "").strip()
+    suggestions = ItemRepository.get_seller_suggestions(query=query)
+    return jsonify(
+        {
+            "items": [{"value": suggestion, "label": suggestion} for suggestion in suggestions]
+        }
+    )
+
+
+@bp.route("/suggestions/categories")
+def category_suggestions():
+    _ = connect_db()
+    query = (request.args.get("q") or "").strip()
+    selected_main_categories = normalize_multi(request.args.getlist("main_category"))
+    main_category_ids = _resolve_main_category_ids(selected_main_categories)
+
+    suggestions = ItemRepository.get_category_suggestions(
+        query=query,
+        scraped_category_ids=main_category_ids or None,
+    )
+    return jsonify(
+        {
+            "items": [{"value": suggestion, "label": suggestion} for suggestion in suggestions]
+        }
+    )
