@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
-    <title>Watched Listings</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Watched Listings</title>
 
     <link
         href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
@@ -12,311 +12,180 @@
         crossorigin="anonymous"
     >
 
-    <style>
-        body {
-            background-color: #f8fafc;
-        }
-
-        header {
-            background-color: #0f172a;
-            color: #fff;
-            border-radius: .75rem;
-            box-shadow: 0 20px 40px rgba(0,0,0,.4);
-        }
-
-        .header-title-link {
-            color: inherit;
-            text-decoration: none;
-        }
-
-        .header-title-link:hover {
-            color: #cbd5e1;
-        }
-
-        .thumb-img {
-            width: 128px;
-            height: 128px;
-            object-fit: cover;
-            border-radius: .5rem;
-            border: 1px solid #dee2e6;
-        }
-
-        .item-card img {
-            width: 100%;
-            max-height: 280px;
-            object-fit: cover;
-            border-radius: .5rem;
-            border: 1px solid #dee2e6;
-        }
-
-        .tag-filter {
-            border: 1px solid #ced4da;
-            border-radius: .5rem;
-            padding: .3rem .5rem;
-            background: #fff;
-            min-height: 40px;
-        }
-
-        .tag-filter-tags {
-            display: flex;
-            flex-wrap: wrap;
-            gap: .35rem;
-            margin-bottom: .25rem;
-        }
-
-        .tag-filter-tag {
-            display: inline-flex;
-            align-items: center;
-            gap: .3rem;
-            background: #dbeafe;
-            color: #1e3a8a;
-            border: 1px solid #93c5fd;
-            border-radius: 999px;
-            padding: .15rem .5rem;
-            font-size: .82rem;
-        }
-
-        .tag-filter-remove {
-            cursor: pointer;
-            border: none;
-            background: transparent;
-            color: #1e3a8a;
-            padding: 0;
-            line-height: 1;
-        }
-
-        .tag-filter-input {
-            border: 0;
-            outline: 0;
-            width: 100%;
-            padding: .1rem 0;
-            font-size: .95rem;
-        }
-
-        .filters-grid {
-            display: grid;
-            grid-template-columns: repeat(12, minmax(0, 1fr));
-            gap: .65rem .85rem;
-            align-items: start;
-        }
-
-        .filters-panel.collapsed {
-            display: none;
-        }
-
-        .filters-form-surface {
-            border: 1px solid #e2e8f0;
-            border-radius: .6rem;
-            background: #f8fafc;
-            padding: .8rem;
-        }
-
-        .filter-col {
-            grid-column: span 4;
-        }
-
-        .search-col {
-            grid-column: span 12;
-        }
-
-        .filters-title {
-            letter-spacing: .06em;
-        }
-
-        .pager {
-            flex-wrap: wrap;
-            gap: .35rem;
-            justify-content: flex-end;
-        }
-
-        .pager .pagination {
-            margin: 0;
-        }
-
-        @media (max-width: 992px) {
-            .filter-col {
-                grid-column: span 6;
-            }
-        }
-
-        @media (max-width: 768px) {
-            .filter-col {
-                grid-column: span 12;
-            }
-        }
-
-        @media (max-width: 576px) {
-            table {
-                font-size: .9rem;
-            }
-
-            .col-bids,
-            .col-seller,
-            .col-category,
-            .col-posted {
-                display: none;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/items.css') }}">
 </head>
-<body class="py-4">
+<body>
+<nav id="app-navbar" class="navbar navbar-expand-lg navbar-dark fixed-top app-nav">
+    <div class="container-fluid">
+        <button id="nav-sidebar-toggle" class="btn nav-hamburger me-2" type="button" aria-label="Toggle filters sidebar">
+            &#9776;
+        </button>
 
-<div class="container">
-    <header class="p-4 mb-4">
-        <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3">
-            <div>
-                <h1 class="h4 fw-semibold mb-1">
-                    <a href="{{ reset_url }}" class="header-title-link">Watched Listings</a>
-                </h1>
-                <p class="text-light text-opacity-75 mb-0">Auctions from your selected sellers and categories</p>
-            </div>
+        <a class="nav-brand" href="{{ reset_url }}">
+            <span class="title">Watched Listings</span>
+            <span class="subtitle">Track auctions from watched sellers and categories</span>
+        </a>
 
-            <div class="d-flex flex-wrap gap-2 align-items-center justify-content-end">
-                {% if quick_category_filters %}
-                    {% for category_id, category_name in quick_category_filters %}
-                        <a href="{{ url_for('main.items_by_parent_category', category_id=category_id) }}" class="btn btn-outline-light btn-sm">
-                            {{ category_name }}
-                        </a>
-                    {% endfor %}
-                {% endif %}
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#topNavCollapse" aria-controls="topNavCollapse" aria-expanded="false" aria-label="Toggle top navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="topNavCollapse">
+            <div class="ms-lg-auto d-flex flex-wrap gap-2 align-items-center mt-2 mt-lg-0">
+                {% for category_id, category_name in quick_category_filters %}
+                    <a class="nav-chip" href="{{ url_for('main.items_by_parent_category', category_id=category_id) }}">{{ category_name }}</a>
+                {% endfor %}
+
                 <div class="dropdown">
                     <button
                         id="admin-menu-toggle"
-                        class="btn btn-light btn-sm dropdown-toggle"
+                        class="btn nav-admin dropdown-toggle"
                         type="button"
                         data-bs-toggle="dropdown"
                         aria-expanded="false"
-                        aria-label="Admin menu"
+                        aria-label="Open admin menu"
                     >
                         &#9776;
                     </button>
-                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="admin-menu-toggle">
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="{{ all_items_url }}">All Items</a></li>
+                        <li><a class="dropdown-item" href="{{ favorites_url }}">Favorites</a></li>
                         <li><a class="dropdown-item" href="{{ url_for('main.manage_watchlist') }}">Manage Watchlist</a></li>
                         <li><a class="dropdown-item" href="{{ url_for('main.analytics') }}">Analytics</a></li>
                     </ul>
                 </div>
             </div>
         </div>
-    </header>
+    </div>
+</nav>
 
-    <div class="card shadow-sm mb-4">
-        <div class="card-body border-bottom py-3">
-            <div class="d-flex justify-content-between align-items-center">
-                <span class="text-uppercase text-muted small fw-semibold filters-title">Filters</span>
-                <button
-                    id="toggle-filters-btn"
-                    type="button"
-                    class="btn btn-outline-secondary btn-sm"
-                    aria-expanded="false"
-                    aria-controls="filters-panel"
-                >
-                    Show Filters
-                </button>
-            </div>
+<main class="dashboard-shell" id="dashboard-shell">
+    <aside id="filters-sidebar" aria-label="Filters">
+        <div class="sidebar-surface">
+            <header class="sidebar-head">
+                <span class="sidebar-title">Filters</span>
+                <div class="d-flex gap-2">
+                    <button id="sidebar-collapse-btn" type="button" class="btn btn-outline-secondary btn-sm">Hide</button>
+                    <button id="sidebar-mobile-close" type="button" class="btn btn-outline-secondary btn-sm d-lg-none">Close</button>
+                </div>
+            </header>
 
-            <div id="filters-panel" class="filters-panel collapsed mt-3">
-                <form method="get" action="{{ url_for('main.home') }}" id="filter-form" class="filters-grid filters-form-surface">
-                    <input type="hidden" name="sort" value="{{ sort }}">
-                    <input type="hidden" name="view" value="{{ view_mode }}">
+            <form id="filter-form" class="sidebar-body" method="get" action="{{ url_for('main.home') }}">
+                <input type="hidden" name="sort" value="{{ sort }}" />
+                <input type="hidden" name="view" value="{{ view_mode }}" />
 
-                    <div class="filter-col">
-                        <label class="form-label form-label-sm text-uppercase text-muted fw-semibold mb-1">Sellers</label>
-                        <div class="tag-filter" id="seller-filter" data-field="seller" data-options='{{ seller_options|tojson }}' data-selected='{{ selected_sellers|tojson }}'>
-                            <div class="tag-filter-tags"></div>
-                            <input type="text" class="tag-filter-input" list="seller-options" placeholder="Type seller and press Enter">
-                            <datalist id="seller-options">
-                                {% for option in seller_options %}
-                                    <option value="{{ option }}"></option>
-                                {% endfor %}
-                            </datalist>
-                            <div class="tag-filter-hidden"></div>
-                        </div>
+                <div class="mb-3">
+                    <label class="form-label form-label-sm text-uppercase text-secondary fw-semibold">Sellers</label>
+                    <div id="seller-filter" class="tag-input-wrap" data-field="seller" data-options='{{ seller_options|tojson }}' data-selected='{{ selected_sellers|tojson }}'>
+                        <div class="tag-list"></div>
+                        <input class="tag-field" type="text" list="seller-options" placeholder="Type seller and press Enter" />
+                        <div class="tag-hidden"></div>
                     </div>
+                    <datalist id="seller-options">
+                        {% for option in seller_options %}
+                            <option value="{{ option }}"></option>
+                        {% endfor %}
+                    </datalist>
+                </div>
 
-                    <div class="filter-col">
-                        <label class="form-label form-label-sm text-uppercase text-muted fw-semibold mb-1">Main Categories</label>
-                        <div class="tag-filter" id="main-category-filter" data-field="main_category" data-options='{{ main_category_options|tojson }}' data-selected='{{ selected_main_categories|tojson }}'>
-                            <div class="tag-filter-tags"></div>
-                            <input type="text" class="tag-filter-input" list="main-category-options" placeholder="Type main category and press Enter">
-                            <datalist id="main-category-options">
-                                {% for option in main_category_options %}
-                                    <option value="{{ option }}"></option>
-                                {% endfor %}
-                            </datalist>
-                            <div class="tag-filter-hidden"></div>
-                        </div>
+                <div class="mb-3">
+                    <label class="form-label form-label-sm text-uppercase text-secondary fw-semibold">Main Categories</label>
+                    <div id="main-category-filter" class="tag-input-wrap" data-field="main_category" data-options='{{ main_category_options|tojson }}' data-selected='{{ selected_main_categories|tojson }}'>
+                        <div class="tag-list"></div>
+                        <input class="tag-field" type="text" list="main-category-options" placeholder="Type main category and press Enter" />
+                        <div class="tag-hidden"></div>
                     </div>
+                    <datalist id="main-category-options">
+                        {% for option in main_category_options %}
+                            <option value="{{ option }}"></option>
+                        {% endfor %}
+                    </datalist>
+                </div>
 
-                    <div class="filter-col">
-                        <label class="form-label form-label-sm text-uppercase text-muted fw-semibold mb-1">Categories</label>
-                        <div class="tag-filter" id="category-filter" data-field="category" data-options='{{ category_options|tojson }}' data-selected='{{ selected_categories|tojson }}'>
-                            <div class="tag-filter-tags"></div>
-                            <input type="text" class="tag-filter-input" list="category-options" placeholder="Type category and press Enter">
-                            <datalist id="category-options">
-                                {% for option in category_options %}
-                                    <option value="{{ option }}"></option>
-                                {% endfor %}
-                            </datalist>
-                            <div class="tag-filter-hidden"></div>
-                        </div>
+                <div class="mb-3">
+                    <label class="form-label form-label-sm text-uppercase text-secondary fw-semibold">Categories</label>
+                    <div id="category-filter" class="tag-input-wrap" data-field="category" data-options='{{ category_options|tojson }}' data-selected='{{ selected_categories|tojson }}'>
+                        <div class="tag-list"></div>
+                        <input class="tag-field" type="text" list="category-options" placeholder="Type category and press Enter" />
+                        <div class="tag-hidden"></div>
                     </div>
+                    <datalist id="category-options">
+                        {% for option in category_options %}
+                            <option value="{{ option }}"></option>
+                        {% endfor %}
+                    </datalist>
+                </div>
 
-                    <div class="search-col">
-                        <label for="q" class="form-label form-label-sm text-uppercase text-muted fw-semibold mb-1">Search</label>
-                        <input id="q" name="q" class="form-control" value="{{ q }}" placeholder="title contains...">
-                    </div>
-                </form>
-            </div>
-        </div>
+                <div class="mb-3">
+                    <label class="form-label form-label-sm text-uppercase text-secondary fw-semibold" for="q">Search</label>
+                    <input id="q" name="q" class="form-control" value="{{ q }}" placeholder="title contains..." />
+                </div>
 
-        <div class="card-header bg-white d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2">
-            <div>
-                <span class="fw-semibold">Latest Items</span>
-                <small class="text-muted ms-2">
-                    {% if items %}Showing {{ items|length }} item{{ '' if items|length == 1 else 's' }} on page {{ page }}{% else %}No items{% endif %}
-                </small>
-            </div>
+                <div class="form-check form-switch mb-2">
+                    <input id="show-hidden-toggle" class="form-check-input filter-toggle" type="checkbox" role="switch" name="show_hidden" value="1" {% if show_hidden %}checked{% endif %} />
+                    <label class="form-check-label" for="show-hidden-toggle">Show hidden items</label>
+                </div>
 
-            <div class="d-flex gap-2 align-items-center">
-                <a href="{{ show_hidden_toggle_url }}" class="btn btn-sm {% if show_hidden %}btn-warning{% else %}btn-outline-secondary{% endif %}">
-                    {% if show_hidden %}Hide Hidden{% else %}Show Hidden{% endif %}
-                </a>
+                <div class="form-check form-switch mb-3">
+                    <input id="favorite-toggle" class="form-check-input filter-toggle" type="checkbox" role="switch" name="favorite" value="1" {% if show_favorites %}checked{% endif %} />
+                    <label class="form-check-label" for="favorite-toggle">Favorites only</label>
+                </div>
 
-                <select class="form-select form-select-sm" aria-label="Sort" onchange="if (this.value) window.location = this.value;">
-                    {% for sort_value, sort_label in sort_choices %}
-                        <option value="{{ sort_urls[sort_value] }}" {% if sort == sort_value %}selected{% endif %}>{{ sort_label }}</option>
+                <div class="quick-filter-links mb-3">
+                    {% for category_id, category_name in quick_category_filters %}
+                        <a href="{{ url_for('main.items_by_parent_category', category_id=category_id) }}">{{ category_name }}</a>
                     {% endfor %}
-                </select>
+                </div>
 
-                <div class="btn-group btn-group-sm" role="group" aria-label="View Mode">
-                    <a href="{{ view_urls['table'] }}" class="btn {% if view_mode == 'table' %}btn-primary{% else %}btn-outline-primary{% endif %}">Table</a>
-                    <a href="{{ view_urls['cards'] }}" class="btn {% if view_mode == 'cards' %}btn-primary{% else %}btn-outline-primary{% endif %}">Cards</a>
+                <div class="d-flex gap-2">
+                    <a class="btn btn-outline-secondary btn-sm" href="{{ all_items_url }}">All Items</a>
+                    <a class="btn btn-outline-primary btn-sm" href="{{ favorites_url }}">Favorites</a>
+                </div>
+            </form>
+        </div>
+    </aside>
+
+    <section class="panel" id="results-main">
+        <header class="panel-toolbar">
+            <div class="toolbar-layout">
+                <div>
+                    <h1 class="h5 mb-0">Latest Items</h1>
+                    <small class="text-muted">
+                        {% if items %}Showing {{ items|length }} items on page {{ page }}{% else %}No items{% endif %}
+                    </small>
+                </div>
+
+                <div class="toolbar-right">
+                    <select class="form-select form-select-sm" aria-label="Sort" onchange="if(this.value) window.location = this.value;">
+                        {% for sort_value, sort_label in sort_choices %}
+                            <option value="{{ sort_urls[sort_value] }}" {% if sort == sort_value %}selected{% endif %}>{{ sort_label }}</option>
+                        {% endfor %}
+                    </select>
+
+                    <div class="btn-group btn-group-sm" role="group" aria-label="View mode">
+                        <a class="btn {% if view_mode == 'table' %}btn-primary{% else %}btn-outline-primary{% endif %}" href="{{ view_urls['table'] }}">Table</a>
+                        <a class="btn {% if view_mode == 'cards' %}btn-primary{% else %}btn-outline-primary{% endif %}" href="{{ view_urls['cards'] }}">Cards</a>
+                    </div>
                 </div>
             </div>
-        </div>
+        </header>
 
         {% if view_mode == 'cards' %}
-            <div class="card-body">
+            <div class="p-3">
                 {% if items %}
                     <div class="row g-3">
                         {% for item in items %}
-                            <div class="col-12 col-md-6 col-lg-4">
-                                <div class="border rounded p-3 h-100 item-card">
+                            <article class="col-12 col-md-6 col-xl-4">
+                                <div class="h-100 border rounded-3 p-3 bg-white">
                                     {% if item.image_url %}
-                                        <img src="{{ item.image_url }}" alt="">
+                                        <img src="{{ item.image_url }}" alt="" class="w-100 border rounded-3" style="max-height: 290px; object-fit: cover;" />
                                     {% endif %}
                                     <h2 class="h6 mt-3 mb-2">
-                                        <a href="{{ item.web_url }}" target="_blank" rel="noopener noreferrer" class="link-primary text-decoration-none">
-                                            {{ item.title }}
-                                        </a>
+                                        <a class="item-title-link" href="{{ item.web_url }}" target="_blank" rel="noopener noreferrer">{{ item.title }}</a>
                                     </h2>
-                                    <div class="d-flex flex-wrap gap-1 mb-2">
-                                        {% if item.favorite %}<span class="badge text-bg-warning">Favorite</span>{% endif %}
-                                        {% if item.hidden %}<span class="badge text-bg-secondary">Hidden</span>{% endif %}
-                                    </div>
                                     <div class="small text-muted mb-2">Seller: <a href="{{ url_for('main.items_by_seller', seller_name=item.seller_name) }}">{{ item.seller_name }}</a></div>
                                     <div class="small text-muted mb-2">Category: <a href="{{ url_for('main.items_by_leaf_category', category_id=item.category_id) }}">{{ item.category_name }}</a></div>
-                                    <div class="fw-semibold">
+                                    <div class="fw-semibold mb-2">
                                         {% if item.current_bid_price is not none %}
                                             {{ '%.2f'|format(item.current_bid_price) }} {{ item.current_bid_price_currency }}
                                         {% elif item.price is not none %}
@@ -325,126 +194,117 @@
                                             -
                                         {% endif %}
                                     </div>
-                                    <div class="d-flex flex-wrap gap-2 mt-3">
+
+                                    <div class="d-flex flex-wrap gap-2">
                                         <form method="post" action="{{ url_for('main.update_item_state', item_id=item.item_id) }}" class="m-0">
-                                            <input type="hidden" name="field" value="favorite">
-                                            <input type="hidden" name="value" value="{{ 0 if item.favorite else 1 }}">
-                                            <input type="hidden" name="next" value="{{ current_path }}">
+                                            <input type="hidden" name="field" value="favorite" />
+                                            <input type="hidden" name="value" value="{{ 0 if item.favorite else 1 }}" />
+                                            <input type="hidden" name="next" value="{{ current_path }}" />
                                             <button type="submit" class="btn btn-outline-warning btn-sm">{% if item.favorite %}Unfavorite{% else %}Favorite{% endif %}</button>
                                         </form>
                                         <form method="post" action="{{ url_for('main.update_item_state', item_id=item.item_id) }}" class="m-0">
-                                            <input type="hidden" name="field" value="hidden">
-                                            <input type="hidden" name="value" value="{{ 0 if item.hidden else 1 }}">
-                                            <input type="hidden" name="next" value="{{ current_path }}">
+                                            <input type="hidden" name="field" value="hidden" />
+                                            <input type="hidden" name="value" value="{{ 0 if item.hidden else 1 }}" />
+                                            <input type="hidden" name="next" value="{{ current_path }}" />
                                             <button type="submit" class="btn btn-outline-secondary btn-sm">{% if item.hidden %}Unhide{% else %}Hide{% endif %}</button>
                                         </form>
                                     </div>
                                 </div>
-                            </div>
+                            </article>
                         {% endfor %}
                     </div>
                 {% else %}
-                    <p class="text-muted mb-0">No items found.</p>
+                    <p class="text-muted p-4 mb-0">No items found.</p>
                 {% endif %}
             </div>
         {% else %}
             <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="table-light">
-                    <tr>
-                        <th scope="col">Image</th>
-                        <th scope="col">Title</th>
-                        <th scope="col">Price</th>
-                        <th scope="col" class="col-bids">Bids</th>
-                        <th scope="col" class="col-seller">Seller</th>
-                        <th scope="col" class="col-category">Category</th>
-                        <th scope="col">State</th>
-                        <th scope="col" class="col-posted">Posted</th>
-                        <th scope="col">Ends</th>
-                        <th scope="col">Actions</th>
-                    </tr>
+                <table id="items-table" class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>Image</th>
+                            <th>Title</th>
+                            <th>Price</th>
+                            <th class="col-bids">Bids</th>
+                            <th class="col-seller">Seller</th>
+                            <th class="col-category">Category</th>
+                            <th>State</th>
+                            <th class="col-posted">Posted</th>
+                            <th>Ends</th>
+                            <th>Actions</th>
+                        </tr>
                     </thead>
                     <tbody>
-                    {% if items %}
-                        {% for item in items %}
+                        {% if items %}
+                            {% for item in items %}
+                                <tr>
+                                    <td style="width:1%;">
+                                        {% if item.image_url %}
+                                            <img src="{{ item.image_url }}" alt="" class="item-thumb" />
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a class="item-title-link" href="{{ item.web_url }}" target="_blank" rel="noopener noreferrer">{{ item.title }}</a>
+                                    </td>
+                                    <td>
+                                        {% if item.current_bid_price is not none %}
+                                            {{ '%.2f'|format(item.current_bid_price) }} {{ item.current_bid_price_currency }}
+                                        {% elif item.price is not none %}
+                                            {{ '%.2f'|format(item.price) }} {{ item.price_currency }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td class="col-bids">{{ item.bid_count }}</td>
+                                    <td class="col-seller">
+                                        <a class="item-title-link" href="{{ url_for('main.items_by_seller', seller_name=item.seller_name) }}">{{ item.seller_name }}</a>
+                                    </td>
+                                    <td class="col-category">
+                                        <a class="item-title-link" href="{{ url_for('main.items_by_leaf_category', category_id=item.category_id) }}">{{ item.category_name }}</a>
+                                    </td>
+                                    <td>
+                                        <span class="state-badges">
+                                            {% if item.favorite %}<span class="state-badge favorite">Favorite</span>{% endif %}
+                                            {% if item.hidden %}<span class="state-badge hidden">Hidden</span>{% endif %}
+                                        </span>
+                                    </td>
+                                    <td class="col-posted text-muted">{{ item.creation_date | humanize_datetime }}</td>
+                                    <td class="text-muted">{{ item.end_date | humanize_datetime }}</td>
+                                    <td>
+                                        <div class="d-flex flex-wrap gap-1">
+                                            <form method="post" action="{{ url_for('main.update_item_state', item_id=item.item_id) }}" class="m-0">
+                                                <input type="hidden" name="field" value="favorite" />
+                                                <input type="hidden" name="value" value="{{ 0 if item.favorite else 1 }}" />
+                                                <input type="hidden" name="next" value="{{ current_path }}" />
+                                                <button type="submit" class="btn btn-outline-warning btn-sm">{% if item.favorite %}Unfav{% else %}Fav{% endif %}</button>
+                                            </form>
+                                            <form method="post" action="{{ url_for('main.update_item_state', item_id=item.item_id) }}" class="m-0">
+                                                <input type="hidden" name="field" value="hidden" />
+                                                <input type="hidden" name="value" value="{{ 0 if item.hidden else 1 }}" />
+                                                <input type="hidden" name="next" value="{{ current_path }}" />
+                                                <button type="submit" class="btn btn-outline-secondary btn-sm">{% if item.hidden %}Unhide{% else %}Hide{% endif %}</button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        {% else %}
                             <tr>
-                                <td style="width:1%;">
-                                    {% if item.image_url %}
-                                        <img src="{{ item.image_url }}" alt="" class="thumb-img">
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    <a href="{{ item.web_url }}" target="_blank" rel="noopener noreferrer" class="link-primary text-decoration-none fw-semibold">
-                                        {{ item.title }}
-                                    </a>
-                                </td>
-                                <td>
-                                    {% if item.current_bid_price is not none %}
-                                        {{ '%.2f'|format(item.current_bid_price) }} {{ item.current_bid_price_currency }}
-                                    {% elif item.price is not none %}
-                                        {{ '%.2f'|format(item.price) }} {{ item.price_currency }}
-                                    {% else %}
-                                        -
-                                    {% endif %}
-                                </td>
-                                <td class="col-bids">{{ item.bid_count }}</td>
-                                <td class="col-seller text-nowrap">
-                                    <a href="{{ url_for('main.items_by_seller', seller_name=item.seller_name) }}" class="link-primary text-decoration-none fw-semibold">
-                                        {{ item.seller_name }}
-                                    </a>
-                                </td>
-                                <td class="col-category">
-                                    <a href="{{ url_for('main.items_by_leaf_category', category_id=item.category_id) }}" class="link-primary text-decoration-none fw-semibold">
-                                        {{ item.category_name }}
-                                    </a>
-                                </td>
-                                <td class="text-nowrap">
-                                    <div class="d-flex flex-wrap gap-1">
-                                        {% if item.favorite %}<span class="badge text-bg-warning">Favorite</span>{% endif %}
-                                        {% if item.hidden %}<span class="badge text-bg-secondary">Hidden</span>{% endif %}
-                                    </div>
-                                </td>
-                                <td class="col-posted text-nowrap text-muted" style="font-size:.85rem;">
-                                    {{ item.creation_date | humanize_datetime }}
-                                </td>
-                                <td class="text-nowrap text-muted" style="font-size:.85rem;">
-                                    {{ item.end_date | humanize_datetime }}
-                                </td>
-                                <td class="text-nowrap">
-                                    <div class="d-flex flex-wrap gap-1">
-                                        <form method="post" action="{{ url_for('main.update_item_state', item_id=item.item_id) }}" class="m-0">
-                                            <input type="hidden" name="field" value="favorite">
-                                            <input type="hidden" name="value" value="{{ 0 if item.favorite else 1 }}">
-                                            <input type="hidden" name="next" value="{{ current_path }}">
-                                            <button type="submit" class="btn btn-outline-warning btn-sm">{% if item.favorite %}Unfav{% else %}Fav{% endif %}</button>
-                                        </form>
-                                        <form method="post" action="{{ url_for('main.update_item_state', item_id=item.item_id) }}" class="m-0">
-                                            <input type="hidden" name="field" value="hidden">
-                                            <input type="hidden" name="value" value="{{ 0 if item.hidden else 1 }}">
-                                            <input type="hidden" name="next" value="{{ current_path }}">
-                                            <button type="submit" class="btn btn-outline-secondary btn-sm">{% if item.hidden %}Unhide{% else %}Hide{% endif %}</button>
-                                        </form>
-                                    </div>
-                                </td>
+                                <td colspan="10" class="text-center py-5 text-muted">No items found.</td>
                             </tr>
-                        {% endfor %}
-                    {% else %}
-                        <tr>
-                            <td colspan="10" class="text-center py-5 text-muted">No items found.</td>
-                        </tr>
-                    {% endif %}
+                        {% endif %}
                     </tbody>
                 </table>
             </div>
         {% endif %}
 
-        <div class="card-footer bg-white d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <footer class="table-foot d-flex flex-wrap justify-content-between align-items-center gap-2">
             <div class="small text-muted">Page {{ page }} of {{ total_pages }}</div>
-            <div class="d-flex align-items-center pager">
+            <div class="d-flex align-items-center flex-wrap gap-1">
                 <a class="btn btn-outline-secondary btn-sm {% if not has_prev %}disabled{% endif %}" href="{{ first_url or '#' }}" {% if not has_prev %}aria-disabled="true"{% endif %}>First</a>
                 <a class="btn btn-outline-secondary btn-sm {% if not has_prev %}disabled{% endif %}" href="{{ prev_url or '#' }}" {% if not has_prev %}aria-disabled="true"{% endif %}>Previous</a>
 
-                <nav aria-label="Page navigation">
+                <nav aria-label="Pagination">
                     <ul class="pagination pagination-sm">
                         {% for page_number in page_sequence %}
                             {% if page_number is none %}
@@ -461,206 +321,17 @@
                 <a class="btn btn-outline-secondary btn-sm {% if not has_next %}disabled{% endif %}" href="{{ next_url or '#' }}" {% if not has_next %}aria-disabled="true"{% endif %}>Next</a>
                 <a class="btn btn-outline-secondary btn-sm {% if not has_next %}disabled{% endif %}" href="{{ last_url or '#' }}" {% if not has_next %}aria-disabled="true"{% endif %}>Last</a>
             </div>
-        </div>
-    </div>
+        </footer>
+    </section>
+</main>
 
-    <footer class="text-center text-muted small pb-5">
-        &copy; {{ now or "2025" }} German Bourdin
-    </footer>
-</div>
+<button id="sidebar-backdrop" type="button" aria-label="Close filters"></button>
 
-<script>
-(function () {
-    const form = document.getElementById("filter-form");
-    const searchInput = document.getElementById("q");
-    const filtersPanel = document.getElementById("filters-panel");
-    const toggleFiltersBtn = document.getElementById("toggle-filters-btn");
-    const filtersStorageKey = "ebay-watchlist.filters.open";
-    let submitTimer = null;
-
-    function submitFilters(delay = 0) {
-        if (!form) {
-            return;
-        }
-
-        if (submitTimer) {
-            window.clearTimeout(submitTimer);
-        }
-
-        submitTimer = window.setTimeout(() => {
-            form.requestSubmit();
-        }, delay);
-    }
-
-    function readFiltersOpen() {
-        try {
-            return window.localStorage.getItem(filtersStorageKey) === "1";
-        } catch (error) {
-            return false;
-        }
-    }
-
-    function writeFiltersOpen(isOpen) {
-        try {
-            window.localStorage.setItem(filtersStorageKey, isOpen ? "1" : "0");
-        } catch (error) {
-            // Ignore storage failures and keep the UI functional.
-        }
-    }
-
-    function setFiltersOpen(isOpen, persist = true) {
-        if (!filtersPanel || !toggleFiltersBtn) {
-            return;
-        }
-
-        filtersPanel.classList.toggle("collapsed", !isOpen);
-        toggleFiltersBtn.setAttribute("aria-expanded", isOpen ? "true" : "false");
-        toggleFiltersBtn.textContent = isOpen ? "Hide Filters" : "Show Filters";
-
-        if (persist) {
-            writeFiltersOpen(isOpen);
-        }
-    }
-
-    if (filtersPanel && toggleFiltersBtn) {
-        setFiltersOpen(readFiltersOpen(), false);
-        toggleFiltersBtn.addEventListener("click", () => {
-            const currentlyOpen = !filtersPanel.classList.contains("collapsed");
-            setFiltersOpen(!currentlyOpen);
-        });
-    }
-
-    function initTagFilter(elementId) {
-        const container = document.getElementById(elementId);
-        if (!container) {
-            return;
-        }
-
-        const fieldName = container.dataset.field;
-        const options = JSON.parse(container.dataset.options || "[]");
-        const selected = JSON.parse(container.dataset.selected || "[]");
-        const allowed = new Set(options.map((item) => String(item)));
-
-        const tagsContainer = container.querySelector(".tag-filter-tags");
-        const input = container.querySelector(".tag-filter-input");
-        const hiddenContainer = container.querySelector(".tag-filter-hidden");
-
-        const values = [];
-
-        function render() {
-            tagsContainer.innerHTML = "";
-            hiddenContainer.innerHTML = "";
-
-            values.forEach((value) => {
-                const tag = document.createElement("span");
-                tag.className = "tag-filter-tag";
-                tag.textContent = value;
-
-                const remove = document.createElement("button");
-                remove.type = "button";
-                remove.className = "tag-filter-remove";
-                remove.textContent = "×";
-                remove.setAttribute("aria-label", `Remove ${value}`);
-                remove.addEventListener("click", () => {
-                    const idx = values.indexOf(value);
-                    if (idx >= 0) {
-                        values.splice(idx, 1);
-                        render();
-                        submitFilters(0);
-                    }
-                });
-
-                tag.appendChild(remove);
-                tagsContainer.appendChild(tag);
-
-                const hidden = document.createElement("input");
-                hidden.type = "hidden";
-                hidden.name = fieldName;
-                hidden.value = value;
-                hiddenContainer.appendChild(hidden);
-            });
-        }
-
-        function addValue(rawValue) {
-            const value = String(rawValue || "").trim();
-            if (!value) {
-                return false;
-            }
-
-            if (allowed.size > 0 && !allowed.has(value)) {
-                return false;
-            }
-
-            if (!values.includes(value)) {
-                values.push(value);
-                render();
-                return true;
-            }
-            return false;
-        }
-
-        selected.forEach((value) => {
-            addValue(value);
-        });
-
-        input.addEventListener("keydown", (event) => {
-            if (event.key === "Enter" || event.key === "," || event.key === "Tab") {
-                if (input.value.trim()) {
-                    event.preventDefault();
-                    const changed = addValue(input.value);
-                    input.value = "";
-                    if (changed) {
-                        submitFilters(0);
-                    }
-                }
-            }
-
-            if (event.key === "Backspace" && !input.value && values.length > 0) {
-                values.pop();
-                render();
-                submitFilters(0);
-            }
-        });
-
-        input.addEventListener("change", () => {
-            const changed = addValue(input.value);
-            input.value = "";
-            if (changed) {
-                submitFilters(0);
-            }
-        });
-
-        input.addEventListener("blur", () => {
-            const changed = addValue(input.value);
-            input.value = "";
-            if (changed) {
-                submitFilters(0);
-            }
-        });
-
-        render();
-    }
-
-    initTagFilter("seller-filter");
-    initTagFilter("category-filter");
-    initTagFilter("main-category-filter");
-
-    if (searchInput) {
-        searchInput.addEventListener("keydown", (event) => {
-            if (event.key === "Enter") {
-                event.preventDefault();
-                submitFilters(0);
-            }
-        });
-    }
-})();
-</script>
-
+<script src="{{ url_for('static', filename='js/items.js') }}"></script>
 <script
     src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
     integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
     crossorigin="anonymous"
 ></script>
-
 </body>
 </html>

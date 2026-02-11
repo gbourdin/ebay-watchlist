@@ -187,6 +187,7 @@ def home():
     selected_main_categories = normalize_multi(request.args.getlist("main_category"))
     search_query = (request.args.get("q") or "").strip()
     show_hidden = request.args.get("show_hidden") == "1"
+    show_favorites = request.args.get("favorite") == "1"
     sort = request.args.get("sort", "newest")
     view_mode = request.args.get("view", "table")
     requested_page = max(request.args.get("page", type=int, default=1), 1)
@@ -224,6 +225,7 @@ def home():
         search_query=search_query or None,
         sort=sort,
         include_hidden=show_hidden,
+        include_favorites_only=show_favorites,
     )
     total_pages = max(1, ceil(total_count / PAGE_SIZE))
     page = min(requested_page, total_pages)
@@ -236,6 +238,7 @@ def home():
         search_query=search_query or None,
         sort=sort,
         include_hidden=show_hidden,
+        include_favorites_only=show_favorites,
         limit=PAGE_SIZE,
         offset=offset,
     )
@@ -250,10 +253,10 @@ def home():
         selected_categories=selected_categories,
         selected_main_categories=selected_main_categories,
         search_query=search_query,
+        show_hidden=show_hidden,
+        show_favorites=show_favorites,
     )
     filter_pairs = list(base_filter_pairs)
-    if show_hidden:
-        filter_pairs.append(("show_hidden", "1"))
     home_url = url_for("main.home")
 
     has_prev = page > 1
@@ -335,11 +338,30 @@ def home():
         )
         for option in SUPPORTED_VIEWS
     }
-    show_hidden_filter_pairs = list(base_filter_pairs)
-    if not show_hidden:
-        show_hidden_filter_pairs.append(("show_hidden", "1"))
-    show_hidden_toggle_url = build_home_url(
-        show_hidden_filter_pairs,
+    favorites_filter_pairs = build_filter_pairs(
+        selected_sellers=selected_sellers,
+        selected_categories=selected_categories,
+        selected_main_categories=selected_main_categories,
+        search_query=search_query,
+        show_hidden=show_hidden,
+        show_favorites=True,
+    )
+    favorites_url = build_home_url(
+        favorites_filter_pairs,
+        sort=sort,
+        view_mode=view_mode,
+        base_url=home_url,
+        page=1,
+    )
+    all_items_url = build_home_url(
+        build_filter_pairs(
+            selected_sellers=selected_sellers,
+            selected_categories=selected_categories,
+            selected_main_categories=selected_main_categories,
+            search_query=search_query,
+            show_hidden=show_hidden,
+            show_favorites=False,
+        ),
         sort=sort,
         view_mode=view_mode,
         base_url=home_url,
@@ -374,7 +396,9 @@ def home():
         first_url=first_url,
         last_url=last_url,
         show_hidden=show_hidden,
-        show_hidden_toggle_url=show_hidden_toggle_url,
+        show_favorites=show_favorites,
+        favorites_url=favorites_url,
+        all_items_url=all_items_url,
         current_path=request.full_path,
         reset_url=url_for("main.home"),
     )

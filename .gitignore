@@ -218,6 +218,9 @@ __marimo__/
 # DBS
 *.sqlite3
 
+# Local git worktrees
+.worktrees/
+
 # Local Experiments
 notebooks/
 

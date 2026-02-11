@@ -43,6 +43,8 @@ def build_filter_pairs(
     selected_categories: list[str],
     selected_main_categories: list[str],
     search_query: str,
+    show_hidden: bool = False,
+    show_favorites: bool = False,
 ) -> list[tuple[str, str]]:
     pairs: list[tuple[str, str]] = []
     pairs.extend(("seller", seller) for seller in selected_sellers)
@@ -52,6 +54,10 @@ def build_filter_pairs(
     )
     if search_query:
         pairs.append(("q", search_query))
+    if show_hidden:
+        pairs.append(("show_hidden", "1"))
+    if show_favorites:
+        pairs.append(("favorite", "1"))
     return pairs
 
 
