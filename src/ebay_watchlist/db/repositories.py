@@ -65,13 +65,15 @@ class ItemRepository:
             include_favorites_only=include_favorites_only,
         )
 
-        if sort == "ending_soon":
+        if sort in {"ending_soon", "ending_soon_active"}:
             query = query.where(Item.end_date >= datetime.now())
             query = query.order_by(Item.end_date.asc())
         elif sort == "price_low":
             query = query.order_by(Item.current_bid_price.asc())
         elif sort == "price_high":
             query = query.order_by(Item.current_bid_price.desc())
+        elif sort == "bids_desc":
+            query = query.order_by(Item.bid_count.desc(), Item.creation_date.desc())
         else:
             query = query.order_by(Item.creation_date.desc())
 
@@ -95,7 +97,7 @@ class ItemRepository:
             include_hidden=include_hidden,
             include_favorites_only=include_favorites_only,
         )
-        if sort == "ending_soon":
+        if sort in {"ending_soon", "ending_soon_active"}:
             query = query.where(Item.end_date >= datetime.now())
         return query.count()
 
