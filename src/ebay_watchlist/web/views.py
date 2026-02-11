@@ -1,8 +1,14 @@
+import os
 from math import ceil
 
 from flask import Blueprint, jsonify, redirect, render_template, request, url_for
 
-from ebay_watchlist.db.repositories import ItemRepository
+from ebay_watchlist.db.repositories import (
+    CategoryRepository,
+    ItemRepository,
+    SellerRepository,
+)
+from ebay_watchlist.ebay.api import EbayAPI
 from ebay_watchlist.web.db import connect_db
 from ebay_watchlist.web.view_helpers import (
     build_filter_pairs,
@@ -10,6 +16,7 @@ from ebay_watchlist.web.view_helpers import (
     build_page_sequence,
     get_main_category_name_by_id,
     normalize_multi,
+    resolve_category_input_to_id,
 )
 
 bp = Blueprint("main", __name__)
@@ -28,6 +35,146 @@ QUICK_CATEGORY_FILTERS: list[tuple[int, str]] = [
     (1249, "Videogames"),
 ]
 
+
+def search_category_suggestions(
+    query: str,
+    marketplace_id: str | None = None,
+) -> list[dict[str, str]]:
+    normalized_query = query.strip()
+    if len(normalized_query) < 2:
+        return []
+
+    fallback = [
+        {"id": str(category_id), "name": category_name, "path": category_name}
+        for category_id, category_name in ItemRepository.get_scraped_category_suggestions()
+        if normalized_query.lower() in category_name.lower()
+    ][:15]
+
+    client_id = os.getenv("EBAY_CLIENT_ID")
+    client_secret = os.getenv("EBAY_CLIENT_SECRET")
+    if not client_id or not client_secret:
+        return fallback
+
+    resolved_marketplace_id = marketplace_id or os.getenv("EBAY_MARKETPLACE_ID", "EBAY_GB")
+    api = EbayAPI(
+        client_id=client_id,
+        client_secret=client_secret,
+        marketplace_id=resolved_marketplace_id,
+    )
+    try:
+        return api.get_category_suggestions(
+            query=normalized_query,
+            marketplace_id=resolved_marketplace_id,
+            limit=15,
+        )
+    except Exception:
+        return fallback
+
+
+@bp.route("/manage/category-suggestions")
+def manage_category_suggestions():
+    _ = connect_db()
+    query = request.args.get("q", "")
+    marketplace_id = request.args.get("marketplace_id")
+    return jsonify(
+        {
+            "suggestions": search_category_suggestions(
+                query=query,
+                marketplace_id=marketplace_id,
+            )
+        }
+    )
+
+
+@bp.route("/manage", methods=["GET", "POST"])
+def manage_watchlist():
+    """
+    Manage watched sellers and categories through the web UI.
+    """
+    _ = connect_db()
+
+    main_category_name_by_id = get_main_category_name_by_id(
+        quick_category_filters=QUICK_CATEGORY_FILTERS,
+        scraped_category_suggestions=ItemRepository.get_scraped_category_suggestions(),
+    )
+
+    if request.method == "POST":
+        action = (request.form.get("action") or "").strip()
+        message = "Action completed."
+        message_level = "success"
+
+        if action == "add_seller":
+            seller_name = (request.form.get("seller_name") or "").strip()
+            if not seller_name:
+                message = "Seller name is required."
+                message_level = "danger"
+            else:
+                SellerRepository.add_seller(seller_name)
+                message = "Seller added."
+        elif action == "remove_seller":
+            seller_name = (request.form.get("seller_name") or "").strip()
+            if not seller_name:
+                message = "Seller name is required."
+                message_level = "danger"
+            else:
+                SellerRepository.remove_seller(seller_name)
+                message = "Seller removed."
+        elif action == "add_category":
+            category_id_raw = (request.form.get("category_id") or "").strip()
+            category_input = (request.form.get("category") or "").strip()
+            if category_id_raw.isdigit():
+                category_id = int(category_id_raw)
+            else:
+                category_id = resolve_category_input_to_id(
+                    category_input=category_input,
+                    category_name_by_id=main_category_name_by_id,
+                )
+            if category_id is None:
+                message = "Unknown category. Pick a known category name or numeric id."
+                message_level = "danger"
+            else:
+                CategoryRepository.add_category(category_id)
+                message = "Category added."
+        elif action == "remove_category":
+            category_id_raw = (request.form.get("category_id") or "").strip()
+            if not category_id_raw.isdigit():
+                message = "Invalid category id."
+                message_level = "danger"
+            else:
+                CategoryRepository.disable_category(int(category_id_raw))
+                message = "Category removed."
+        else:
+            message = "Unknown action."
+            message_level = "danger"
+
+        return redirect(
+            url_for(
+                "main.manage_watchlist",
+                message=message,
+                message_level=message_level,
+            )
+        )
+
+    watched_sellers = SellerRepository.get_enabled_sellers()
+    watched_category_ids = CategoryRepository.get_enabled_categories()
+    watched_categories = [
+        {
+            "id": category_id,
+            "name": main_category_name_by_id.get(category_id, f"Category {category_id}"),
+        }
+        for category_id in watched_category_ids
+    ]
+
+    return render_template(
+        "manage.html",
+        watched_sellers=watched_sellers,
+        watched_categories=watched_categories,
+        category_options=sorted(main_category_name_by_id.values()),
+        message=request.args.get("message"),
+        message_level=request.args.get("message_level", "info"),
+        reset_url=url_for("main.home"),
+    )
+
 @bp.route("/")
 def home():
     """
@@ -39,6 +186,7 @@ def home():
     selected_categories = normalize_multi(request.args.getlist("category"))
     selected_main_categories = normalize_multi(request.args.getlist("main_category"))
     search_query = (request.args.get("q") or "").strip()
+    show_hidden = request.args.get("show_hidden") == "1"
     sort = request.args.get("sort", "newest")
     view_mode = request.args.get("view", "table")
     requested_page = max(request.args.get("page", type=int, default=1), 1)
@@ -75,6 +223,7 @@ def home():
         scraped_category_ids=selected_main_category_ids or None,
         search_query=search_query or None,
         sort=sort,
+        include_hidden=show_hidden,
     )
     total_pages = max(1, ceil(total_count / PAGE_SIZE))
     page = min(requested_page, total_pages)
@@ -86,16 +235,25 @@ def home():
         scraped_category_ids=selected_main_category_ids or None,
         search_query=search_query or None,
         sort=sort,
+        include_hidden=show_hidden,
         limit=PAGE_SIZE,
         offset=offset,
     )
+    state_by_item_id = ItemRepository.get_item_states([str(item.item_id) for item in items])
+    for item in items:
+        state = state_by_item_id.get(str(item.item_id))
+        item.hidden = bool(state.hidden) if state is not None else False
+        item.favorite = bool(state.favorite) if state is not None else False
 
-    filter_pairs = build_filter_pairs(
+    base_filter_pairs = build_filter_pairs(
         selected_sellers=selected_sellers,
         selected_categories=selected_categories,
         selected_main_categories=selected_main_categories,
         search_query=search_query,
     )
+    filter_pairs = list(base_filter_pairs)
+    if show_hidden:
+        filter_pairs.append(("show_hidden", "1"))
     home_url = url_for("main.home")
 
     has_prev = page > 1
@@ -177,6 +335,16 @@ def home():
         )
         for option in SUPPORTED_VIEWS
     }
+    show_hidden_filter_pairs = list(base_filter_pairs)
+    if not show_hidden:
+        show_hidden_filter_pairs.append(("show_hidden", "1"))
+    show_hidden_toggle_url = build_home_url(
+        show_hidden_filter_pairs,
+        sort=sort,
+        view_mode=view_mode,
+        base_url=home_url,
+        page=1,
+    )
 
     return render_template(
         "items.html",
@@ -205,8 +373,30 @@ def home():
         next_url=next_url,
         first_url=first_url,
         last_url=last_url,
+        show_hidden=show_hidden,
+        show_hidden_toggle_url=show_hidden_toggle_url,
+        current_path=request.full_path,
         reset_url=url_for("main.home"),
     )
+
+
+@bp.route("/items/<item_id>/state", methods=["POST"])
+def update_item_state(item_id: str):
+    _ = connect_db()
+
+    field = (request.form.get("field") or "").strip()
+    value_raw = (request.form.get("value") or "").strip().lower()
+    next_url = (request.form.get("next") or url_for("main.home")).strip()
+
+    value_map = {"1": True, "0": False, "true": True, "false": False}
+    value = value_map.get(value_raw)
+    if value is not None:
+        if field == "hidden":
+            ItemRepository.update_item_state(item_id=item_id, hidden=value)
+        elif field == "favorite":
+            ItemRepository.update_item_state(item_id=item_id, favorite=value)
+
+    return redirect(next_url)
 
 
 @bp.route("/sellers/<seller_name>")
@@ -245,3 +435,14 @@ def status():
     Simple healthcheck endpoint for docker to ping
     """
     return jsonify({"status": "OK"})
+
+
+@bp.route("/analytics")
+def analytics():
+    _ = connect_db()
+    snapshot = ItemRepository.get_analytics_snapshot()
+    return render_template(
+        "analytics.html",
+        reset_url=url_for("main.home"),
+        **snapshot,
+    )

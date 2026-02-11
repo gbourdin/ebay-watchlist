@@ -4,6 +4,7 @@ from ebay_watchlist.web.view_helpers import (
     build_page_sequence,
     get_main_category_name_by_id,
     normalize_multi,
+    resolve_category_input_to_id,
 )
 
 
@@ -86,3 +87,27 @@ def test_build_page_sequence_returns_single_page_for_empty_results():
     result = build_page_sequence(page=1, total_pages=1)
 
     assert result == [1]
+
+
+def test_resolve_category_input_to_id_supports_exact_name_case_insensitive():
+    name_by_id = {619: "Musical Instruments", 58058: "Computers"}
+
+    result = resolve_category_input_to_id("musical instruments", name_by_id)
+
+    assert result == 619
+
+
+def test_resolve_category_input_to_id_supports_numeric_ids():
+    name_by_id = {619: "Musical Instruments"}
+
+    result = resolve_category_input_to_id("58058", name_by_id)
+
+    assert result == 58058
+
+
+def test_resolve_category_input_to_id_returns_none_for_unknown_values():
+    name_by_id = {619: "Musical Instruments"}
+
+    result = resolve_category_input_to_id("unknown", name_by_id)
+
+    assert result is None

@@ -5,6 +5,7 @@ from peewee import (
     CharField,
     DateTimeField,
     DecimalField,
+    ForeignKeyField,
     IntegerField,
     Model,
     TextField,
@@ -40,6 +41,19 @@ class Item(BaseModel):
     creation_date = DateTimeField()
     end_date = DateTimeField(index=True)
     db_creation_date = DateTimeField(default=datetime.now, index=True)
+    db_update_date = DateTimeField(default=datetime.now)
+
+
+class ItemState(BaseModel):
+    item = ForeignKeyField(
+        Item,
+        backref="state",
+        column_name="item_id",
+        field=Item.item_id,
+        primary_key=True,
+    )
+    hidden = BooleanField(default=False)
+    favorite = BooleanField(default=False)
     db_update_date = DateTimeField(default=datetime.now)
 
 

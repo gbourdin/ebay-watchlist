@@ -1,8 +1,8 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from peewee import DoesNotExist, fn
 
-from ebay_watchlist.db.models import Item, WatchedCategory, WatchedSeller
+from ebay_watchlist.db.models import Item, ItemState, WatchedCategory, WatchedSeller
 from ebay_watchlist.ebay.dtos import EbayItem
 
 
@@ -13,6 +13,7 @@ class ItemRepository:
         category_names: list[str] | None = None,
         scraped_category_ids: list[int] | None = None,
         search_query: str | None = None,
+        include_hidden: bool = False,
     ):
         query = Item.select()
 
@@ -28,6 +29,13 @@ class ItemRepository:
         if search_query:
             query = query.where(Item.title.contains(search_query))
 
+        if not include_hidden:
+            hidden_item_ids = (
+                ItemState.select(ItemState.item_id)
+                .where(ItemState.hidden)
+            )
+            query = query.where(Item.item_id.not_in(hidden_item_ids))
+
         return query
 
     @staticmethod
@@ -37,6 +45,7 @@ class ItemRepository:
         scraped_category_ids: list[int] | None = None,
         search_query: str | None = None,
         sort: str = "newest",
+        include_hidden: bool = False,
         limit: int = 50,
         offset: int = 0,
     ) -> list[Item]:
@@ -45,6 +54,7 @@ class ItemRepository:
             category_names=category_names,
             scraped_category_ids=scraped_category_ids,
             search_query=search_query,
+            include_hidden=include_hidden,
         )
 
         if sort == "ending_soon":
@@ -66,12 +76,14 @@ class ItemRepository:
         scraped_category_ids: list[int] | None = None,
         search_query: str | None = None,
         sort: str = "newest",
+        include_hidden: bool = False,
     ) -> int:
         query = ItemRepository._build_filtered_query(
             seller_names=seller_names,
             category_names=category_names,
             scraped_category_ids=scraped_category_ids,
             search_query=search_query,
+            include_hidden=include_hidden,
         )
         if sort == "ending_soon":
             query = query.where(Item.end_date >= datetime.now())
@@ -257,6 +269,95 @@ class ItemRepository:
     @staticmethod
     def delete_items_ended_before(cutoff: datetime) -> int:
         return Item.delete().where(Item.end_date < cutoff).execute()
+
+    @staticmethod
+    def update_item_state(
+        item_id: str,
+        hidden: bool | None = None,
+        favorite: bool | None = None,
+    ) -> ItemState:
+        state, _ = ItemState.get_or_create(item_id=item_id)
+
+        if hidden is not None:
+            state.hidden = hidden
+        if favorite is not None:
+            state.favorite = favorite
+
+        state.db_update_date = datetime.now()
+        state.save()
+        return state
+
+    @staticmethod
+    def get_item_states(item_ids: list[str]) -> dict[str, ItemState]:
+        if not item_ids:
+            return {}
+
+        states = ItemState.select().where(ItemState.item_id.in_(item_ids))
+        return {str(state.item_id): state for state in states}
+
+    @staticmethod
+    def get_analytics_snapshot(
+        now: datetime | None = None,
+        top_limit: int = 8,
+    ) -> dict[str, int | list[tuple[str, int]]]:
+        current_time = now or datetime.now()
+        next_day = current_time + timedelta(days=1)
+        last_7_days_start = current_time - timedelta(days=7)
+
+        total_items = Item.select().count()
+        active_items = Item.select().where(Item.end_date >= current_time).count()
+        ending_soon_items = (
+            Item.select()
+            .where((Item.end_date >= current_time) & (Item.end_date < next_day))
+            .count()
+        )
+        new_last_7_days = (
+            Item.select()
+            .where(Item.creation_date >= last_7_days_start)
+            .count()
+        )
+
+        hidden_items = ItemState.select().where(ItemState.hidden).count()
+        favorite_items = ItemState.select().where(ItemState.favorite).count()
+
+        top_seller_rows = (
+            Item.select(
+                Item.seller_name,
+                fn.COUNT(Item.item_id).alias("item_count"),
+            )
+            .group_by(Item.seller_name)
+            .order_by(fn.COUNT(Item.item_id).desc(), Item.seller_name.asc())
+            .limit(top_limit)
+        )
+        top_sellers = [
+            (str(row.seller_name), int(getattr(row, "item_count")))
+            for row in top_seller_rows
+        ]
+
+        top_category_rows = (
+            Item.select(
+                Item.category_name,
+                fn.COUNT(Item.item_id).alias("item_count"),
+            )
+            .group_by(Item.category_name)
+            .order_by(fn.COUNT(Item.item_id).desc(), Item.category_name.asc())
+            .limit(top_limit)
+        )
+        top_categories = [
+            (str(row.category_name), int(getattr(row, "item_count")))
+            for row in top_category_rows
+        ]
+
+        return {
+            "total_items": total_items,
+            "active_items": active_items,
+            "ending_soon_items": ending_soon_items,
+            "new_last_7_days": new_last_7_days,
+            "hidden_items": hidden_items,
+            "favorite_items": favorite_items,
+            "top_sellers": top_sellers,
+            "top_categories": top_categories,
+        }
 
 
 class SellerRepository:

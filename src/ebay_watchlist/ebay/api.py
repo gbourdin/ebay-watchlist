@@ -8,6 +8,12 @@ from ebay_watchlist.ebay.dtos import EbayItem
 
 SEARCH_API_ENDPOINT = "https://api.ebay.com/buy/browse/v1/item_summary/search"
 OAUTH_TOKEN_URL = "https://api.ebay.com/identity/v1/oauth2/token"
+TAXONOMY_DEFAULT_TREE_ENDPOINT = (
+    "https://api.ebay.com/commerce/taxonomy/v1/get_default_category_tree_id"
+)
+TAXONOMY_CATEGORY_SUGGESTIONS_ENDPOINT = (
+    "https://api.ebay.com/commerce/taxonomy/v1/category_tree/{category_tree_id}/get_category_suggestions"
+)
 HTTP_TIMEOUT_SECONDS = 20
 logger = logging.getLogger(__name__)
 
@@ -85,27 +91,88 @@ class EbayAPI:
             "limit": limit,
         }
 
-        request = self.session.get(
-            SEARCH_API_ENDPOINT, params=params, timeout=HTTP_TIMEOUT_SECONDS
-        )
-
-        if request.status_code == 401:
-            self.authenticated = False
-            self._authenticate()
-            request = self.session.get(
-                SEARCH_API_ENDPOINT, params=params, timeout=HTTP_TIMEOUT_SECONDS
-            )
-            if request.status_code == 401:
-                raise requests.HTTPError("Unauthorized after re-authentication")
-
-        # Intentionally unhandled, so failures for something other than authentication are loud
-        request.raise_for_status()
+        request = self._get_with_reauth(SEARCH_API_ENDPOINT, params=params)
 
         results = request.json()
         items = results.get("itemSummaries", [])
         ebay_items = self.parse_items(items)
 
         return ebay_items
+
+    def get_default_category_tree_id(self, marketplace_id: str = "EBAY_GB") -> str:
+        if not self.authenticated:
+            self._authenticate()
+
+        request = self._get_with_reauth(
+            TAXONOMY_DEFAULT_TREE_ENDPOINT,
+            params={"marketplace_id": marketplace_id},
+        )
+        response_json = request.json()
+        return str(response_json["categoryTreeId"])
+
+    def get_category_suggestions(
+        self,
+        query: str,
+        marketplace_id: str = "EBAY_GB",
+        limit: int = 10,
+    ) -> list[dict[str, str]]:
+        normalized_query = query.strip()
+        if not normalized_query:
+            return []
+
+        category_tree_id = self.get_default_category_tree_id(
+            marketplace_id=marketplace_id
+        )
+        endpoint = TAXONOMY_CATEGORY_SUGGESTIONS_ENDPOINT.format(
+            category_tree_id=category_tree_id
+        )
+        request = self._get_with_reauth(endpoint, params={"q": normalized_query})
+        results = request.json()
+
+        suggestions: list[dict[str, str]] = []
+        for raw in results.get("categorySuggestions", []):
+            category = raw.get("category", {})
+            category_id = str(category.get("categoryId", "")).strip()
+            category_name = str(category.get("categoryName", "")).strip()
+            if not category_id or not category_name:
+                continue
+
+            ancestor_names = [
+                str(node.get("categoryName", "")).strip()
+                for node in raw.get("categoryTreeNodeAncestors", [])
+                if str(node.get("categoryName", "")).strip()
+            ]
+            # Ancestors may come parent->root; display as root->leaf for readability.
+            path_parts = list(reversed(ancestor_names))
+            if not path_parts or path_parts[-1] != category_name:
+                path_parts.append(category_name)
+
+            suggestions.append(
+                {
+                    "id": category_id,
+                    "name": category_name,
+                    "path": " > ".join(path_parts),
+                }
+            )
+
+            if len(suggestions) >= limit:
+                break
+
+        return suggestions
+
+    def _get_with_reauth(self, url: str, params: dict | None = None):
+        request = self.session.get(url, params=params, timeout=HTTP_TIMEOUT_SECONDS)
+
+        if request.status_code == 401:
+            self.authenticated = False
+            self._authenticate()
+            request = self.session.get(url, params=params, timeout=HTTP_TIMEOUT_SECONDS)
+            if request.status_code == 401:
+                raise requests.HTTPError("Unauthorized after re-authentication")
+
+        # Intentionally unhandled, so failures for something other than authentication are loud
+        request.raise_for_status()
+        return request
 
     @staticmethod
     def build_filters(buying_options: list[str], sellers: list[str]) -> str:

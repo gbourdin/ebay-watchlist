@@ -21,6 +21,23 @@ def get_main_category_name_by_id(
     return name_by_id
 
 
+def resolve_category_input_to_id(
+    category_input: str,
+    category_name_by_id: dict[int, str],
+) -> int | None:
+    cleaned = category_input.strip()
+    if not cleaned:
+        return None
+
+    if cleaned.isdigit():
+        return int(cleaned)
+
+    id_by_lower_name = {
+        name.lower(): category_id for category_id, name in category_name_by_id.items()
+    }
+    return id_by_lower_name.get(cleaned.lower())
+
+
 def build_filter_pairs(
     selected_sellers: list[str],
     selected_categories: list[str],

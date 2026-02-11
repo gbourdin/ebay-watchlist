@@ -14,6 +14,7 @@ from ebay_watchlist.db.repositories import (
     ItemRepository,
     SellerRepository,
 )
+from ebay_watchlist.db.utils import ensure_schema_compatibility
 from ebay_watchlist.ebay.api import EbayAPI
 from ebay_watchlist.notifications.service import NotificationService
 from ebay_watchlist.web.app import create_app
@@ -147,6 +148,7 @@ def run_flask(host: str | None = None, port: int | None = None, debug: bool = Fa
 def main():
     load_dotenv()
     database.connect(reuse_if_open=True)
+    ensure_schema_compatibility()
     try:
         app()
     finally:

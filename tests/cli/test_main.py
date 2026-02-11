@@ -32,6 +32,7 @@ def test_main_closes_db_on_command_error(monkeypatch):
     close_called = {"value": False}
 
     monkeypatch.setattr(cli_main.database, "connect", lambda *args, **kwargs: None)
+    monkeypatch.setattr(cli_main, "ensure_schema_compatibility", lambda: None)
 
     def fake_close():
         close_called["value"] = True
