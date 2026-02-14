@@ -49,14 +49,24 @@ export default function CardGridView({
               <button
                 type="button"
                 onClick={() => onToggleFavorite(item)}
-                className="inline-flex flex-1 justify-center rounded-md border border-amber-400 px-2 py-1 text-xs font-semibold text-amber-700 transition hover:bg-amber-100"
+                aria-pressed={item.favorite}
+                className={`inline-flex flex-1 justify-center rounded-md border px-2 py-1 text-xs font-semibold transition ${
+                  item.favorite
+                    ? "border-amber-500 bg-amber-100 text-amber-900"
+                    : "border-amber-400 text-amber-700 hover:bg-amber-100"
+                }`}
               >
                 Fav
               </button>
               <button
                 type="button"
                 onClick={() => onToggleHidden(item)}
-                className="inline-flex flex-1 justify-center rounded-md border border-slate-400 px-2 py-1 text-xs font-semibold text-slate-700 transition hover:bg-slate-100"
+                aria-pressed={item.hidden}
+                className={`inline-flex flex-1 justify-center rounded-md border px-2 py-1 text-xs font-semibold transition ${
+                  item.hidden
+                    ? "border-slate-900 bg-slate-900 text-white"
+                    : "border-slate-400 text-slate-700 hover:bg-slate-100"
+                }`}
               >
                 Hide
               </button>

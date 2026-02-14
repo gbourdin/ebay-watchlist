@@ -21,6 +21,7 @@ const sampleItem: ItemRow = {
   hidden: false,
   favorite: false,
 };
+let rows: ItemRow[] = [sampleItem];
 
 let queryState = {
   seller: [],
@@ -50,10 +51,10 @@ vi.mock("../useItemsQuery", () => ({
   useItemsQuery: () => ({
     query: queryState,
     data: {
-      items: [sampleItem],
+      items: rows,
       page: 1,
       page_size: 100,
-      total: 1,
+      total: rows.length,
       total_pages: 1,
       has_next: false,
       has_prev: false,
@@ -88,6 +89,7 @@ beforeEach(() => {
     page: 1,
     page_size: 100,
   };
+  rows = [sampleItem];
   updateQuery.mockClear();
 });
 
@@ -105,6 +107,7 @@ test("dense table is the default view", () => {
   expect(screen.getByRole("columnheader", { name: "Bids" })).toBeInTheDocument();
   expect(screen.getByRole("columnheader", { name: "Seller" })).toBeInTheDocument();
   expect(screen.getByRole("columnheader", { name: "Category" })).toBeInTheDocument();
+  expect(screen.getByRole("columnheader", { name: "Posted" })).toBeInTheDocument();
   expect(screen.getByRole("columnheader", { name: "Ends" })).toBeInTheDocument();
   expect(screen.getByRole("columnheader", { name: "Actions" })).toBeInTheDocument();
 });
@@ -135,4 +138,30 @@ test("title links to ebay and row actions include favorite and hide only", () =>
   expect(screen.getByRole("button", { name: "Fav" })).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Hide" })).toBeInTheDocument();
   expect(screen.queryByRole("button", { name: "Notify" })).not.toBeInTheDocument();
+});
+
+test("favorite and hide actions expose persistent active state", () => {
+  rows = [{ ...sampleItem, favorite: true, hidden: true }];
+  render(<ItemsPage />);
+
+  expect(screen.getByRole("button", { name: "Fav" })).toHaveAttribute("aria-pressed", "true");
+  expect(screen.getByRole("button", { name: "Hide" })).toHaveAttribute(
+    "aria-pressed",
+    "true"
+  );
+});
+
+test("dense table images keep square shape on mobile", () => {
+  render(<ItemsPage />);
+
+  const itemImage = screen.getByRole("img", { name: "Vintage Telecaster" });
+  expect(itemImage).toHaveClass("aspect-square");
+});
+
+test("view switcher provides compact icon controls on mobile", () => {
+  render(<ItemsPage />);
+
+  expect(screen.getByRole("button", { name: "Switch to table view" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Switch to hybrid view" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Switch to cards view" })).toBeInTheDocument();
 });
