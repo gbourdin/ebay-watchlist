@@ -57,6 +57,19 @@ class ItemState(BaseModel):
     db_update_date = DateTimeField(default=datetime.now)
 
 
+class ItemNote(BaseModel):
+    item = ForeignKeyField(
+        Item,
+        backref="note",
+        column_name="item_id",
+        field=Item.item_id,
+        primary_key=True,
+    )
+    note_text = TextField()
+    created_at = DateTimeField(default=datetime.now)
+    last_modified = DateTimeField(default=datetime.now)
+
+
 class WatchedSeller(BaseModel):
     username = CharField(unique=True)
     enabled = BooleanField(default=True)

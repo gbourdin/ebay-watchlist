@@ -1,11 +1,11 @@
 from datetime import datetime, timedelta
 
 from ebay_watchlist.db.config import database
-from ebay_watchlist.db.models import Item, ItemState
+from ebay_watchlist.db.models import Item, ItemNote, ItemState
 from ebay_watchlist.db.utils import ensure_schema_compatibility
 
 
-def test_ensure_schema_compatibility_adds_item_state_without_data_loss(temp_db):
+def test_ensure_schema_compatibility_adds_state_tables_without_data_loss(temp_db):
     now = datetime(2026, 2, 11, 10, 0, 0)
     Item.create(
         item_id="legacy-1",
@@ -29,11 +29,13 @@ def test_ensure_schema_compatibility_adds_item_state_without_data_loss(temp_db):
         end_date=now + timedelta(days=2),
     )
 
-    database.drop_tables([ItemState], safe=True)
+    database.drop_tables([ItemNote, ItemState], safe=True)
     assert "itemstate" not in set(database.get_tables())
+    assert "itemnote" not in set(database.get_tables())
     assert Item.select().count() == 1
 
     ensure_schema_compatibility()
 
     assert "itemstate" in set(database.get_tables())
+    assert "itemnote" in set(database.get_tables())
     assert Item.select().count() == 1
