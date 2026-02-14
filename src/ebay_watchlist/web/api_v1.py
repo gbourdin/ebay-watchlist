@@ -3,7 +3,7 @@ from math import ceil
 import humanize
 from flask import Blueprint, jsonify, request
 
-from ebay_watchlist.db.models import Item
+from ebay_watchlist.db.models import Item, ItemNote
 from ebay_watchlist.db.repositories import ItemRepository
 from ebay_watchlist.web.db import connect_db
 from ebay_watchlist.web.view_helpers import (
@@ -65,7 +65,10 @@ def _resolve_main_category_ids(selected_main_categories: list[str]) -> list[int]
     ]
 
 
-def _serialize_item(item: Item) -> dict[str, str | float | int | bool]:
+def _serialize_item(
+    item: Item,
+    note: ItemNote | None = None,
+) -> dict[str, str | float | int | bool | None]:
     current_price = item.current_bid_price if item.current_bid_price is not None else item.price
     current_currency = (
         item.current_bid_price_currency
@@ -87,6 +90,9 @@ def _serialize_item(item: Item) -> dict[str, str | float | int | bool]:
         "web_url": str(item.web_url),
         "hidden": bool(getattr(item, "hidden", False)),
         "favorite": bool(getattr(item, "favorite", False)),
+        "note_text": str(note.note_text) if note is not None else None,
+        "note_created_at": note.created_at.isoformat() if note is not None else None,
+        "note_last_modified": note.last_modified.isoformat() if note is not None else None,
     }
 
 
@@ -140,6 +146,7 @@ def items():
     )
     item_ids = [str(item.item_id) for item in items]
     state_by_item_id = ItemRepository.get_item_states(item_ids)
+    note_by_item_id = ItemRepository.get_item_notes(item_ids)
     for item in items:
         state = state_by_item_id.get(str(item.item_id))
         item.hidden = bool(state.hidden) if state is not None else False
@@ -147,7 +154,10 @@ def items():
 
     return jsonify(
         {
-            "items": [_serialize_item(item) for item in items],
+            "items": [
+                _serialize_item(item, note=note_by_item_id.get(str(item.item_id)))
+                for item in items
+            ],
             "page": page,
             "page_size": page_size,
             "total": total_count,
@@ -187,6 +197,38 @@ def update_hidden(item_id: str):
 
     state = ItemRepository.update_item_state(item_id=item_id, hidden=value)
     return jsonify({"item_id": item_id, "hidden": bool(state.hidden)})
+
+
+@bp.route("/items/<item_id>/note", methods=["POST"])
+def upsert_note(item_id: str):
+    _ = connect_db()
+    if Item.get_or_none(item_id=item_id) is None:
+        return jsonify({"error": "item not found"}), 404
+
+    payload = request.get_json(silent=True) or {}
+    note_text = payload.get("note_text")
+    if not isinstance(note_text, str):
+        return jsonify({"error": "note_text must be a string"}), 400
+
+    note = ItemRepository.upsert_item_note(item_id=item_id, note_text=note_text)
+    if note is None:
+        return jsonify(
+            {
+                "item_id": item_id,
+                "note_text": None,
+                "note_created_at": None,
+                "note_last_modified": None,
+            }
+        )
+
+    return jsonify(
+        {
+            "item_id": item_id,
+            "note_text": str(note.note_text),
+            "note_created_at": note.created_at.isoformat(),
+            "note_last_modified": note.last_modified.isoformat(),
+        }
+    )
 
 
 @bp.route("/suggestions/sellers")

@@ -60,3 +60,37 @@ def test_toggle_endpoints_reject_non_boolean_payloads(temp_db):
 
     assert response.status_code == 400
     assert response.get_json() == {"error": "value must be a boolean"}
+
+
+def test_note_endpoint_upserts_and_clears_note(temp_db):
+    insert_item("4")
+    app = create_app()
+    client = app.test_client()
+
+    create_response = client.post("/api/v1/items/4/note", json={"note_text": "Bid up to 150 GBP"})
+    assert create_response.status_code == 200
+    created = create_response.get_json()
+    assert created["item_id"] == "4"
+    assert created["note_text"] == "Bid up to 150 GBP"
+    assert created["note_created_at"] is not None
+    assert created["note_last_modified"] is not None
+
+    clear_response = client.post("/api/v1/items/4/note", json={"note_text": ""})
+    assert clear_response.status_code == 200
+    assert clear_response.get_json() == {
+        "item_id": "4",
+        "note_text": None,
+        "note_created_at": None,
+        "note_last_modified": None,
+    }
+
+
+def test_note_endpoint_rejects_non_string_payload(temp_db):
+    insert_item("5")
+    app = create_app()
+    client = app.test_client()
+
+    response = client.post("/api/v1/items/5/note", json={"note_text": True})
+
+    assert response.status_code == 400
+    assert response.get_json() == {"error": "note_text must be a string"}
