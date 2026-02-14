@@ -1,14 +1,11 @@
 import type { ItemRow } from "../api";
+import { formatExactDateTime, humanizeDateTime } from "../relative-time";
 
 interface DenseTableViewProps {
   items: ItemRow[];
   onToggleFavorite: (item: ItemRow) => void;
   onToggleHidden: (item: ItemRow) => void;
   onEditNote: (item: ItemRow) => void;
-}
-
-function formatPostedAt(postedAt: string): string {
-  return postedAt.replace("T", " ").slice(0, 16);
 }
 
 export default function DenseTableView({
@@ -28,8 +25,8 @@ export default function DenseTableView({
             <th className="px-3 py-3">Bids</th>
             <th className="px-3 py-3">Seller</th>
             <th className="px-3 py-3">Category</th>
-            <th className="px-3 py-3">Posted</th>
-            <th className="px-3 py-3">Ends</th>
+            <th className="px-3 py-3 whitespace-nowrap">Posted</th>
+            <th className="px-3 py-3 whitespace-nowrap">Ends</th>
             <th className="px-3 py-3">Actions</th>
           </tr>
         </thead>
@@ -67,8 +64,24 @@ export default function DenseTableView({
                 <td className="px-3 py-3">{item.bids}</td>
                 <td className="px-3 py-3">{item.seller}</td>
                 <td className="px-3 py-3">{item.category}</td>
-                <td className="px-3 py-3">{formatPostedAt(item.posted_at)}</td>
-                <td className="px-3 py-3">{item.ends_in}</td>
+                <td className="px-3 py-3 whitespace-nowrap">
+                  <time
+                    data-testid={`posted-${item.item_id}`}
+                    dateTime={item.posted_at}
+                    title={formatExactDateTime(item.posted_at)}
+                  >
+                    {humanizeDateTime(item.posted_at)}
+                  </time>
+                </td>
+                <td className="px-3 py-3 whitespace-nowrap">
+                  <time
+                    data-testid={`ends-${item.item_id}`}
+                    dateTime={item.ends_at}
+                    title={formatExactDateTime(item.ends_at)}
+                  >
+                    {humanizeDateTime(item.ends_at)}
+                  </time>
+                </td>
                 <td className="space-y-2 px-3 py-3">
                   <button
                     type="button"

@@ -1,4 +1,5 @@
 import type { ItemRow } from "../api";
+import { formatExactDateTime, humanizeDateTime } from "../relative-time";
 
 interface HybridListViewProps {
   items: ItemRow[];
@@ -43,7 +44,25 @@ export default function HybridListView({
             <p className="text-sm text-slate-600">
               {item.seller} · {item.category}
             </p>
-            <p className="text-sm text-slate-600">Ends {item.ends_in}</p>
+            <p className="text-sm text-slate-600">
+              Posted{" "}
+              <time
+                data-testid={`posted-${item.item_id}`}
+                dateTime={item.posted_at}
+                title={formatExactDateTime(item.posted_at)}
+              >
+                {humanizeDateTime(item.posted_at)}
+              </time>
+              {" · "}
+              Ends{" "}
+              <time
+                data-testid={`ends-${item.item_id}`}
+                dateTime={item.ends_at}
+                title={formatExactDateTime(item.ends_at)}
+              >
+                {humanizeDateTime(item.ends_at)}
+              </time>
+            </p>
           </div>
           <div className="space-y-2">
             <p className="text-lg font-semibold text-slate-900">

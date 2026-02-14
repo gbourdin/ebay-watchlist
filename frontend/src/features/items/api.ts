@@ -18,7 +18,6 @@ export interface ItemRow {
   category: string;
   posted_at: string;
   ends_at: string;
-  ends_in: string;
   web_url: string;
   hidden: boolean;
   favorite: boolean;

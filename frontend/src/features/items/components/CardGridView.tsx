@@ -1,4 +1,5 @@
 import type { ItemRow } from "../api";
+import { formatExactDateTime, humanizeDateTime } from "../relative-time";
 
 interface CardGridViewProps {
   items: ItemRow[];
@@ -46,7 +47,26 @@ export default function CardGridView({
             <p className="text-sm text-slate-600">
               {item.seller} · {item.category}
             </p>
-            <p className="text-sm text-slate-500">Ends {item.ends_in}</p>
+            <p className="text-sm text-slate-500">
+              Posted{" "}
+              <time
+                data-testid={`posted-${item.item_id}`}
+                dateTime={item.posted_at}
+                title={formatExactDateTime(item.posted_at)}
+              >
+                {humanizeDateTime(item.posted_at)}
+              </time>
+            </p>
+            <p className="text-sm text-slate-500">
+              Ends{" "}
+              <time
+                data-testid={`ends-${item.item_id}`}
+                dateTime={item.ends_at}
+                title={formatExactDateTime(item.ends_at)}
+              >
+                {humanizeDateTime(item.ends_at)}
+              </time>
+            </p>
             <div className="flex gap-2 pt-1">
               <button
                 type="button"

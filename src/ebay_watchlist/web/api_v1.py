@@ -1,6 +1,5 @@
 from math import ceil
 
-import humanize
 from flask import Blueprint, jsonify, request
 
 from ebay_watchlist.db.models import Item, ItemNote
@@ -86,7 +85,6 @@ def _serialize_item(
         "category": str(item.category_name),
         "posted_at": item.creation_date.isoformat(),
         "ends_at": item.end_date.isoformat(),
-        "ends_in": humanize.naturaltime(item.end_date),
         "web_url": str(item.web_url),
         "hidden": bool(getattr(item, "hidden", False)),
         "favorite": bool(getattr(item, "favorite", False)),

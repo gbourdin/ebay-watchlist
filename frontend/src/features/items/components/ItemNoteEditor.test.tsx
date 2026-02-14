@@ -16,7 +16,6 @@ const item: ItemRow = {
   category: "Electric Guitars",
   posted_at: "2025-01-01T12:00:00",
   ends_at: "2025-01-02T12:00:00",
-  ends_in: "in 2 days",
   web_url: "https://www.ebay.com/itm/1",
   hidden: false,
   favorite: false,

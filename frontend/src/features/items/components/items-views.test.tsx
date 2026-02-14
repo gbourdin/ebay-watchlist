@@ -16,7 +16,6 @@ const sampleItem: ItemRow = {
   category: "Electric Guitars",
   posted_at: "2025-01-01T12:00:00",
   ends_at: "2025-01-02T12:00:00",
-  ends_in: "in 2 days",
   web_url: "https://www.ebay.com/itm/1",
   hidden: false,
   favorite: false,
@@ -121,6 +120,10 @@ test("dense table is the default view", () => {
   expect(screen.getByRole("columnheader", { name: "Posted" })).toBeInTheDocument();
   expect(screen.getByRole("columnheader", { name: "Ends" })).toBeInTheDocument();
   expect(screen.getByRole("columnheader", { name: "Actions" })).toBeInTheDocument();
+  expect(screen.getByTestId("posted-1").textContent).not.toContain("T");
+  expect(screen.getByTestId("ends-1").textContent).not.toContain("T");
+  expect(screen.getByTestId("posted-1")).toHaveAttribute("title");
+  expect(screen.getByTestId("ends-1")).toHaveAttribute("title");
 });
 
 test("view switcher supports dense, hybrid, and cards", async () => {
@@ -133,11 +136,15 @@ test("view switcher supports dense, hybrid, and cards", async () => {
   expect(updateQuery).toHaveBeenCalledWith({ view: "hybrid", page: 1 });
   rerender(<ItemsPage />);
   expect(screen.getByTestId("view-hybrid")).toBeInTheDocument();
+  expect(screen.getByTestId("posted-1")).toHaveAttribute("title");
+  expect(screen.getByTestId("ends-1")).toHaveAttribute("title");
 
   await user.click(screen.getByRole("button", { name: "Cards" }));
   expect(updateQuery).toHaveBeenCalledWith({ view: "cards", page: 1 });
   rerender(<ItemsPage />);
   expect(screen.getByTestId("view-cards")).toBeInTheDocument();
+  expect(screen.getByTestId("posted-1")).toHaveAttribute("title");
+  expect(screen.getByTestId("ends-1")).toHaveAttribute("title");
 });
 
 test("title links to ebay and row actions include favorite, hide and note", () => {

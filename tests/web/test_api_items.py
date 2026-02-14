@@ -93,7 +93,6 @@ def test_items_api_serializes_row_fields(temp_db):
         "category",
         "posted_at",
         "ends_at",
-        "ends_in",
         "web_url",
         "hidden",
         "favorite",
