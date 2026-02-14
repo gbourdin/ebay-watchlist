@@ -29,6 +29,7 @@
 - Frontend e2e smoke: `npm --prefix frontend run test:e2e` (Playwright).
 - Full backend checks before PR: `make ci`.
 - Add/update tests for filtering, sorting, pagination, and state toggles (`favorite`, `hidden`).
+- Add/update tests for note editing flows (`/api/v1/items/<id>/note`, modal save/cancel UX).
 
 ## Commit & Pull Request Guidelines
 - Use focused commits with conventional prefixes (`feat:`, `fix:`, `chore:`) or scoped variants (`feat(api): ...`).

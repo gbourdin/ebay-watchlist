@@ -4,6 +4,7 @@ interface DenseTableViewProps {
   items: ItemRow[];
   onToggleFavorite: (item: ItemRow) => void;
   onToggleHidden: (item: ItemRow) => void;
+  onEditNote: (item: ItemRow) => void;
 }
 
 function formatPostedAt(postedAt: string): string {
@@ -14,6 +15,7 @@ export default function DenseTableView({
   items,
   onToggleFavorite,
   onToggleHidden,
+  onEditNote,
 }: DenseTableViewProps) {
   return (
     <div data-testid="view-table" className="overflow-x-auto rounded-xl border border-slate-200">
@@ -91,6 +93,17 @@ export default function DenseTableView({
                     }`}
                   >
                     Hide
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onEditNote(item)}
+                    className={`inline-flex w-full justify-center rounded-md border px-2 py-1 text-xs font-semibold transition ${
+                      item.note_text
+                        ? "border-blue-500 bg-blue-100 text-blue-900"
+                        : "border-blue-300 text-blue-700 hover:bg-blue-100"
+                    }`}
+                  >
+                    Note
                   </button>
                 </td>
               </tr>

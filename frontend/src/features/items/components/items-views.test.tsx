@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, vi } from "vitest";
 
@@ -20,8 +20,12 @@ const sampleItem: ItemRow = {
   web_url: "https://www.ebay.com/itm/1",
   hidden: false,
   favorite: false,
+  note_text: null,
+  note_created_at: null,
+  note_last_modified: null,
 };
 let rows: ItemRow[] = [sampleItem];
+const { updateItemNoteMock } = vi.hoisted(() => ({ updateItemNoteMock: vi.fn() }));
 
 let queryState = {
   seller: [],
@@ -73,6 +77,12 @@ vi.mock("../api", async (importOriginal) => {
     ...actual,
     toggleFavorite: vi.fn().mockResolvedValue(undefined),
     toggleHidden: vi.fn().mockResolvedValue(undefined),
+    updateItemNote: updateItemNoteMock.mockResolvedValue({
+      item_id: "1",
+      note_text: "watch this one",
+      note_created_at: "2025-01-01T12:00:00",
+      note_last_modified: "2025-01-01T12:05:00",
+    }),
   };
 });
 
@@ -91,6 +101,7 @@ beforeEach(() => {
   };
   rows = [sampleItem];
   updateQuery.mockClear();
+  updateItemNoteMock.mockClear();
 });
 
 afterEach(() => {
@@ -129,7 +140,7 @@ test("view switcher supports dense, hybrid, and cards", async () => {
   expect(screen.getByTestId("view-cards")).toBeInTheDocument();
 });
 
-test("title links to ebay and row actions include favorite and hide only", () => {
+test("title links to ebay and row actions include favorite, hide and note", () => {
   render(<ItemsPage />);
 
   const titleLink = screen.getByRole("link", { name: "Vintage Telecaster" });
@@ -137,6 +148,7 @@ test("title links to ebay and row actions include favorite and hide only", () =>
 
   expect(screen.getByRole("button", { name: "Fav" })).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Hide" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Note" })).toBeInTheDocument();
   expect(screen.queryByRole("button", { name: "Notify" })).not.toBeInTheDocument();
 });
 
@@ -164,4 +176,21 @@ test("view switcher provides compact icon controls on mobile", () => {
   expect(screen.getByRole("button", { name: "Switch to table view" })).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Switch to hybrid view" })).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Switch to cards view" })).toBeInTheDocument();
+});
+
+test("note action opens editor and saves note text", async () => {
+  const user = userEvent.setup();
+  render(<ItemsPage />);
+
+  await user.click(screen.getByRole("button", { name: "Note" }));
+  expect(screen.getByRole("dialog", { name: "Edit item note" })).toBeInTheDocument();
+
+  const textArea = screen.getByLabelText("Personal note");
+  await user.clear(textArea);
+  await user.type(textArea, "watch this one");
+  await user.click(screen.getByRole("button", { name: "Save note" }));
+
+  await waitFor(() => {
+    expect(updateItemNoteMock).toHaveBeenCalledWith("1", "watch this one");
+  });
 });

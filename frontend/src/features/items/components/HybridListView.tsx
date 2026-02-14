@@ -4,12 +4,14 @@ interface HybridListViewProps {
   items: ItemRow[];
   onToggleFavorite: (item: ItemRow) => void;
   onToggleHidden: (item: ItemRow) => void;
+  onEditNote: (item: ItemRow) => void;
 }
 
 export default function HybridListView({
   items,
   onToggleFavorite,
   onToggleHidden,
+  onEditNote,
 }: HybridListViewProps) {
   return (
     <div data-testid="view-hybrid" className="space-y-3">
@@ -71,6 +73,17 @@ export default function HybridListView({
               }`}
             >
               Hide
+            </button>
+            <button
+              type="button"
+              onClick={() => onEditNote(item)}
+              className={`inline-flex w-full justify-center rounded-md border px-2 py-1 text-xs font-semibold transition ${
+                item.note_text
+                  ? "border-blue-500 bg-blue-100 text-blue-900"
+                  : "border-blue-300 text-blue-700 hover:bg-blue-100"
+              }`}
+            >
+              Note
             </button>
           </div>
         </article>

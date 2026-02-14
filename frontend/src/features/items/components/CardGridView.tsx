@@ -4,12 +4,14 @@ interface CardGridViewProps {
   items: ItemRow[];
   onToggleFavorite: (item: ItemRow) => void;
   onToggleHidden: (item: ItemRow) => void;
+  onEditNote: (item: ItemRow) => void;
 }
 
 export default function CardGridView({
   items,
   onToggleFavorite,
   onToggleHidden,
+  onEditNote,
 }: CardGridViewProps) {
   return (
     <div data-testid="view-cards" className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -71,6 +73,17 @@ export default function CardGridView({
                 Hide
               </button>
             </div>
+            <button
+              type="button"
+              onClick={() => onEditNote(item)}
+              className={`inline-flex w-full justify-center rounded-md border px-2 py-1 text-xs font-semibold transition ${
+                item.note_text
+                  ? "border-blue-500 bg-blue-100 text-blue-900"
+                  : "border-blue-300 text-blue-700 hover:bg-blue-100"
+              }`}
+            >
+              Note
+            </button>
           </div>
         </article>
       ))}

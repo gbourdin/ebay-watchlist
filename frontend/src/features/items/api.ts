@@ -22,6 +22,9 @@ export interface ItemRow {
   web_url: string;
   hidden: boolean;
   favorite: boolean;
+  note_text: string | null;
+  note_created_at: string | null;
+  note_last_modified: string | null;
 }
 
 export interface ItemsResponse {
@@ -42,6 +45,13 @@ export interface Suggestion {
 
 export interface SuggestionsResponse {
   items: Suggestion[];
+}
+
+export interface ItemNoteResponse {
+  item_id: string;
+  note_text: string | null;
+  note_created_at: string | null;
+  note_last_modified: string | null;
 }
 
 export async function fetchItems(queryString: string): Promise<ItemsResponse> {
@@ -99,4 +109,21 @@ export async function toggleHidden(itemId: string, value: boolean): Promise<void
   if (!response.ok) {
     throw new Error(`hidden update failed: ${response.status}`);
   }
+}
+
+export async function updateItemNote(
+  itemId: string,
+  noteText: string
+): Promise<ItemNoteResponse> {
+  const response = await fetch(`/api/v1/items/${encodeURIComponent(itemId)}/note`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ note_text: noteText }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`note update failed: ${response.status}`);
+  }
+
+  return (await response.json()) as ItemNoteResponse;
 }

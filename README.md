@@ -43,9 +43,12 @@ Other useful CLI commands:
 ## UI Highlights (Phase 1 SPA)
 - Full-width pinned navbar and collapsible left filter sidebar.
 - Live filtering with URL query-state sync and no full page reloads.
-- Default dense table triage view with large thumbnails and eBay-linked titles.
+- Default dense table triage view with large square thumbnails and eBay-linked titles.
+- `Posted` and `Ends` columns are both present in dense view for fast recency triage.
 - Alternate `Hybrid` and `Cards` views for comparison/testing.
-- Row actions limited to `Fav` and `Hide`.
+- Row actions include `Fav`, `Hide`, and `Note`.
+- `Fav` and `Hide` buttons stay visually highlighted when active.
+- Per-item note editing is available from each view (`Note` action).
 - Mobile-first behavior: results first, filters closed until opened from menu.
 
 ## Quality Checks
