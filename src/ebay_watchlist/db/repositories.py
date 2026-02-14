@@ -65,13 +65,15 @@ class ItemRepository:
             include_favorites_only=include_favorites_only,
         )
 
-        if sort == "ending_soon":
+        if sort in {"ending_soon", "ending_soon_active"}:
             query = query.where(Item.end_date >= datetime.now())
             query = query.order_by(Item.end_date.asc())
         elif sort == "price_low":
             query = query.order_by(Item.current_bid_price.asc())
         elif sort == "price_high":
             query = query.order_by(Item.current_bid_price.desc())
+        elif sort == "bids_desc":
+            query = query.order_by(Item.bid_count.desc(), Item.creation_date.desc())
         else:
             query = query.order_by(Item.creation_date.desc())
 
@@ -95,7 +97,7 @@ class ItemRepository:
             include_hidden=include_hidden,
             include_favorites_only=include_favorites_only,
         )
-        if sort == "ending_soon":
+        if sort in {"ending_soon", "ending_soon_active"}:
             query = query.where(Item.end_date >= datetime.now())
         return query.count()
 
@@ -109,6 +111,18 @@ class ItemRepository:
         return [str(item.seller_name) for item in query if item.seller_name]
 
     @staticmethod
+    def get_seller_suggestions(query: str, limit: int = 15) -> list[str]:
+        normalized = query.strip().lower()
+        if not normalized:
+            return []
+
+        return [
+            seller_name
+            for seller_name in ItemRepository.get_distinct_seller_names()
+            if normalized in seller_name.lower()
+        ][:limit]
+
+    @staticmethod
     def get_distinct_category_names(
         scraped_category_ids: list[int] | None = None,
     ) -> list[str]:
@@ -117,6 +131,24 @@ class ItemRepository:
             query = query.where(Item.scraped_category_id.in_(scraped_category_ids))
         query = query.distinct().order_by(Item.category_name.asc())
         return [str(item.category_name) for item in query if item.category_name]
+
+    @staticmethod
+    def get_category_suggestions(
+        query: str,
+        scraped_category_ids: list[int] | None = None,
+        limit: int = 15,
+    ) -> list[str]:
+        normalized = query.strip().lower()
+        if not normalized:
+            return []
+
+        return [
+            category_name
+            for category_name in ItemRepository.get_distinct_category_names(
+                scraped_category_ids=scraped_category_ids
+            )
+            if normalized in category_name.lower()
+        ][:limit]
 
     @staticmethod
     def get_distinct_scraped_category_ids() -> list[int]:
