@@ -191,6 +191,8 @@ test("dense table images keep square shape on mobile", () => {
 
   const itemImage = screen.getByRole("img", { name: "Vintage Telecaster" });
   expect(itemImage).toHaveClass("aspect-square");
+  expect(itemImage).toHaveClass("min-w-20");
+  expect(itemImage).toHaveClass("max-w-none");
 });
 
 test("view switcher provides compact icon controls on mobile", () => {
