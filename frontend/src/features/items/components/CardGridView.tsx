@@ -5,6 +5,8 @@ interface CardGridViewProps {
   items: ItemRow[];
   onToggleFavorite: (item: ItemRow) => void;
   onToggleHidden: (item: ItemRow) => void;
+  onRefreshItem: (item: ItemRow) => void;
+  isRefreshingItem: (itemId: string) => boolean;
   onAddSellerFilter: (item: ItemRow) => void;
   onAddCategoryFilter: (item: ItemRow) => void;
   onEditNote: (item: ItemRow) => void;
@@ -14,6 +16,8 @@ export default function CardGridView({
   items,
   onToggleFavorite,
   onToggleHidden,
+  onRefreshItem,
+  isRefreshingItem,
   onAddSellerFilter,
   onAddCategoryFilter,
   onEditNote,
@@ -88,6 +92,14 @@ export default function CardGridView({
               </time>
             </p>
             <div className="flex gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => onRefreshItem(item)}
+                disabled={isRefreshingItem(item.item_id)}
+                className="inline-flex flex-1 justify-center rounded-md border border-emerald-400 px-2 py-1 text-xs font-semibold text-emerald-800 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isRefreshingItem(item.item_id) ? "Refreshing..." : "Refresh"}
+              </button>
               <button
                 type="button"
                 onClick={() => onToggleFavorite(item)}

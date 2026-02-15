@@ -1,5 +1,7 @@
 import base64
 import logging
+import os
+from urllib.parse import quote
 
 import requests
 from pydantic import ValidationError
@@ -7,6 +9,7 @@ from pydantic import ValidationError
 from ebay_watchlist.ebay.dtos import EbayItem
 
 SEARCH_API_ENDPOINT = "https://api.ebay.com/buy/browse/v1/item_summary/search"
+ITEM_API_ENDPOINT = "https://api.ebay.com/buy/browse/v1/item/{item_id}"
 OAUTH_TOKEN_URL = "https://api.ebay.com/identity/v1/oauth2/token"
 TAXONOMY_DEFAULT_TREE_ENDPOINT = (
     "https://api.ebay.com/commerce/taxonomy/v1/get_default_category_tree_id"
@@ -55,9 +58,34 @@ class EbayAPI:
             "scope": "https://api.ebay.com/oauth/api_scope",
         }
 
-        auth_data = self.session.post(
-            OAUTH_TOKEN_URL, headers=headers, data=data, timeout=HTTP_TIMEOUT_SECONDS
-        )
+        try:
+            auth_data = self.session.post(
+                OAUTH_TOKEN_URL, headers=headers, data=data, timeout=HTTP_TIMEOUT_SECONDS
+            )
+        except requests.exceptions.SSLError:
+            logger.warning(
+                "TLS error while requesting eBay OAuth token. "
+                "Retrying once with temporary OpenSSL environment override.",
+                exc_info=True,
+            )
+            previous_openssl_conf = os.environ.get("OPENSSL_CONF")
+            previous_openssl_modules = os.environ.get("OPENSSL_MODULES")
+            try:
+                os.environ["OPENSSL_CONF"] = "/dev/null"
+                os.environ.pop("OPENSSL_MODULES", None)
+                auth_data = self.session.post(
+                    OAUTH_TOKEN_URL, headers=headers, data=data, timeout=HTTP_TIMEOUT_SECONDS
+                )
+            finally:
+                if previous_openssl_conf is None:
+                    os.environ.pop("OPENSSL_CONF", None)
+                else:
+                    os.environ["OPENSSL_CONF"] = previous_openssl_conf
+
+                if previous_openssl_modules is None:
+                    os.environ.pop("OPENSSL_MODULES", None)
+                else:
+                    os.environ["OPENSSL_MODULES"] = previous_openssl_modules
         auth_data.raise_for_status()
         token_info = auth_data.json()
 
@@ -98,6 +126,32 @@ class EbayAPI:
         ebay_items = self.parse_items(items)
 
         return ebay_items
+
+    def get_item_snapshot(self, item_id: str) -> dict | None:
+        """
+        Fetch a single eBay item payload by item id.
+
+        Returns None when eBay responds with 404.
+        """
+        if not self.authenticated:
+            self._authenticate()
+
+        encoded_item_id = quote(item_id, safe="")
+        endpoint = ITEM_API_ENDPOINT.format(item_id=encoded_item_id)
+        params = {"fieldgroups": "COMPACT"}
+        request = self._get_with_reauth(
+            endpoint,
+            params=params,
+            allow_statuses={404},
+        )
+
+        if request.status_code == 404:
+            return None
+
+        payload = request.json()
+        if not isinstance(payload, dict):
+            raise requests.HTTPError("Unexpected item payload type")
+        return payload
 
     def get_default_category_tree_id(self, marketplace_id: str = "EBAY_GB") -> str:
         if not self.authenticated:
@@ -160,7 +214,13 @@ class EbayAPI:
 
         return suggestions
 
-    def _get_with_reauth(self, url: str, params: dict | None = None):
+    def _get_with_reauth(
+        self,
+        url: str,
+        params: dict | None = None,
+        allow_statuses: set[int] | None = None,
+    ):
+        allowed = allow_statuses or set()
         request = self.session.get(url, params=params, timeout=HTTP_TIMEOUT_SECONDS)
 
         if request.status_code == 401:
@@ -169,6 +229,9 @@ class EbayAPI:
             request = self.session.get(url, params=params, timeout=HTTP_TIMEOUT_SECONDS)
             if request.status_code == 401:
                 raise requests.HTTPError("Unauthorized after re-authentication")
+
+        if request.status_code in allowed:
+            return request
 
         # Intentionally unhandled, so failures for something other than authentication are loud
         request.raise_for_status()
