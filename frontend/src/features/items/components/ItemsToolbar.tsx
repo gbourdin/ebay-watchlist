@@ -22,6 +22,16 @@ const viewOptions: Array<{ value: ItemsView; label: string }> = [
   { value: "cards", label: "Cards" },
 ];
 
+function viewIcon(view: ItemsView): string {
+  if (view === "table") {
+    return "▦";
+  }
+  if (view === "hybrid") {
+    return "☰";
+  }
+  return "◫";
+}
+
 export default function ItemsToolbar({
   total,
   sort,
@@ -50,7 +60,25 @@ export default function ItemsToolbar({
           ))}
         </select>
 
-        <div className="inline-flex rounded-lg border border-slate-300 bg-white p-1">
+        <div className="inline-flex rounded-lg border border-slate-300 bg-white p-1 sm:hidden">
+          {viewOptions.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              aria-label={`Switch to ${option.label.toLowerCase()} view`}
+              onClick={() => onViewChange(option.value)}
+              className={`inline-flex h-8 w-8 items-center justify-center rounded-md text-base font-semibold transition ${
+                view === option.value
+                  ? "bg-slate-900 text-white"
+                  : "text-slate-700 hover:bg-slate-100"
+              }`}
+            >
+              <span aria-hidden="true">{viewIcon(option.value)}</span>
+            </button>
+          ))}
+        </div>
+
+        <div className="hidden rounded-lg border border-slate-300 bg-white p-1 sm:inline-flex">
           {viewOptions.map((option) => (
             <button
               key={option.value}

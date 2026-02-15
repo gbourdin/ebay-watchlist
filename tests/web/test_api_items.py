@@ -74,6 +74,7 @@ def test_items_api_serializes_row_fields(temp_db):
     )
 
     ItemRepository.update_item_state(item_id="1", hidden=True, favorite=True)
+    ItemRepository.upsert_item_note(item_id="1", note_text="Max 120 GBP")
 
     app = create_app()
     client = app.test_client()
@@ -92,10 +93,12 @@ def test_items_api_serializes_row_fields(temp_db):
         "category",
         "posted_at",
         "ends_at",
-        "ends_in",
         "web_url",
         "hidden",
         "favorite",
+        "note_text",
+        "note_created_at",
+        "note_last_modified",
     }
     assert row["item_id"] == "1"
     assert row["title"] == "Test Guitar"
@@ -107,6 +110,9 @@ def test_items_api_serializes_row_fields(temp_db):
     assert row["hidden"] is True
     assert row["favorite"] is True
     assert row["web_url"] == "https://www.ebay.com/itm/1"
+    assert row["note_text"] == "Max 120 GBP"
+    assert row["note_created_at"] is not None
+    assert row["note_last_modified"] is not None
 
 
 def test_items_api_applies_filters_sort_and_pagination(temp_db):

@@ -2,7 +2,13 @@ from datetime import datetime, timedelta
 
 from peewee import DoesNotExist, fn
 
-from ebay_watchlist.db.models import Item, ItemState, WatchedCategory, WatchedSeller
+from ebay_watchlist.db.models import (
+    Item,
+    ItemNote,
+    ItemState,
+    WatchedCategory,
+    WatchedSeller,
+)
 from ebay_watchlist.ebay.dtos import EbayItem
 
 
@@ -310,7 +316,16 @@ class ItemRepository:
 
     @staticmethod
     def delete_items_ended_before(cutoff: datetime) -> int:
-        return Item.delete().where(Item.end_date < cutoff).execute()
+        stale_item_ids = [
+            str(row.item_id)
+            for row in Item.select(Item.item_id).where(Item.end_date < cutoff)
+        ]
+        if not stale_item_ids:
+            return 0
+
+        ItemNote.delete().where(ItemNote.item_id.in_(stale_item_ids)).execute()
+        ItemState.delete().where(ItemState.item_id.in_(stale_item_ids)).execute()
+        return Item.delete().where(Item.item_id.in_(stale_item_ids)).execute()
 
     @staticmethod
     def update_item_state(
@@ -336,6 +351,38 @@ class ItemRepository:
 
         states = ItemState.select().where(ItemState.item_id.in_(item_ids))
         return {str(state.item_id): state for state in states}
+
+    @staticmethod
+    def get_item_notes(item_ids: list[str]) -> dict[str, ItemNote]:
+        if not item_ids:
+            return {}
+
+        notes = ItemNote.select().where(ItemNote.item_id.in_(item_ids))
+        return {str(note.item_id): note for note in notes}
+
+    @staticmethod
+    def upsert_item_note(item_id: str, note_text: str) -> ItemNote | None:
+        normalized_note = note_text.strip()
+        if not normalized_note:
+            ItemNote.delete().where(ItemNote.item_id == item_id).execute()
+            return None
+
+        now = datetime.now()
+        note, created = ItemNote.get_or_create(
+            item_id=item_id,
+            defaults={
+                "note_text": normalized_note,
+                "created_at": now,
+                "last_modified": now,
+            },
+        )
+        if created:
+            return note
+
+        note.note_text = normalized_note
+        note.last_modified = now
+        note.save()
+        return note
 
     @staticmethod
     def get_analytics_snapshot(

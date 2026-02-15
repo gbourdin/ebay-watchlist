@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 
-from ebay_watchlist.db.models import Item
+from ebay_watchlist.db.models import Item, ItemNote, ItemState
 from ebay_watchlist.db.repositories import ItemRepository
 
 
@@ -36,12 +36,20 @@ def test_delete_items_ended_before_removes_only_stale_rows(temp_db):
     insert_item("old", end_date=now - timedelta(days=40))
     insert_item("recent", end_date=now - timedelta(days=20))
     insert_item("future", end_date=now + timedelta(days=2))
+    ItemRepository.update_item_state(item_id="old", hidden=True, favorite=True)
+    ItemRepository.update_item_state(item_id="recent", hidden=True, favorite=False)
+    ItemRepository.upsert_item_note(item_id="old", note_text="stale note")
+    ItemRepository.upsert_item_note(item_id="recent", note_text="active note")
 
     deleted = ItemRepository.delete_items_ended_before(cutoff)
 
     assert deleted == 1
     remaining_ids = sorted(item.item_id for item in Item.select())
     assert remaining_ids == ["future", "recent"]
+    assert ItemState.get_or_none(ItemState.item_id == "old") is None
+    assert ItemState.get_or_none(ItemState.item_id == "recent") is not None
+    assert ItemNote.get_or_none(ItemNote.item_id == "old") is None
+    assert ItemNote.get_or_none(ItemNote.item_id == "recent") is not None
 
 
 def test_delete_items_ended_before_returns_zero_when_nothing_matches(temp_db):

@@ -22,6 +22,7 @@ vi.mock("../api", async (importOriginal) => {
 const mockedFetchSellerSuggestions = vi.mocked(fetchSellerSuggestions);
 
 beforeEach(() => {
+  window.localStorage.clear();
   mockedFetchSellerSuggestions.mockReset();
   mockedFetchSellerSuggestions.mockResolvedValue({ items: [] });
 });
@@ -151,4 +152,13 @@ test("seller input auto-adds on blur when value matches suggestion", async () =>
   await user.tab();
 
   await waitFor(() => expect(harness.getQuery()?.seller).toContain("alice_shop"));
+});
+
+test("sidebar does not render routes, saved views, or watched searches controls", () => {
+  const itemsQuery = createItemsQueryMock();
+  render(<FiltersSidebar itemsQuery={itemsQuery} />);
+
+  expect(screen.queryByText("Route")).not.toBeInTheDocument();
+  expect(screen.queryByText("Saved Views")).not.toBeInTheDocument();
+  expect(screen.queryByText("Watched Searches")).not.toBeInTheDocument();
 });

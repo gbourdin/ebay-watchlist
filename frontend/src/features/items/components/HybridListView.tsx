@@ -1,15 +1,22 @@
 import type { ItemRow } from "../api";
+import { formatExactDateTime, humanizeDateTime } from "../relative-time";
 
 interface HybridListViewProps {
   items: ItemRow[];
   onToggleFavorite: (item: ItemRow) => void;
   onToggleHidden: (item: ItemRow) => void;
+  onAddSellerFilter: (item: ItemRow) => void;
+  onAddCategoryFilter: (item: ItemRow) => void;
+  onEditNote: (item: ItemRow) => void;
 }
 
 export default function HybridListView({
   items,
   onToggleFavorite,
   onToggleHidden,
+  onAddSellerFilter,
+  onAddCategoryFilter,
+  onEditNote,
 }: HybridListViewProps) {
   return (
     <div data-testid="view-hybrid" className="space-y-3">
@@ -39,9 +46,43 @@ export default function HybridListView({
               {item.title}
             </a>
             <p className="text-sm text-slate-600">
-              {item.seller} · {item.category}
+              <button
+                type="button"
+                onClick={() => onAddSellerFilter(item)}
+                className="font-medium text-blue-700 hover:underline"
+                aria-label={`Filter by seller ${item.seller}`}
+              >
+                {item.seller}
+              </button>
+              {" · "}
+              <button
+                type="button"
+                onClick={() => onAddCategoryFilter(item)}
+                className="font-medium text-blue-700 hover:underline"
+                aria-label={`Filter by category ${item.category}`}
+              >
+                {item.category}
+              </button>
             </p>
-            <p className="text-sm text-slate-600">Ends {item.ends_in}</p>
+            <p className="text-sm text-slate-600">
+              Posted{" "}
+              <time
+                data-testid={`posted-${item.item_id}`}
+                dateTime={item.posted_at}
+                title={formatExactDateTime(item.posted_at)}
+              >
+                {humanizeDateTime(item.posted_at)}
+              </time>
+              {" · "}
+              Ends{" "}
+              <time
+                data-testid={`ends-${item.item_id}`}
+                dateTime={item.ends_at}
+                title={formatExactDateTime(item.ends_at)}
+              >
+                {humanizeDateTime(item.ends_at)}
+              </time>
+            </p>
           </div>
           <div className="space-y-2">
             <p className="text-lg font-semibold text-slate-900">
@@ -51,16 +92,37 @@ export default function HybridListView({
             <button
               type="button"
               onClick={() => onToggleFavorite(item)}
-              className="inline-flex w-full justify-center rounded-md border border-amber-400 px-2 py-1 text-xs font-semibold text-amber-700 transition hover:bg-amber-100"
+              aria-pressed={item.favorite}
+              className={`inline-flex w-full justify-center rounded-md border px-2 py-1 text-xs font-semibold transition ${
+                item.favorite
+                  ? "border-amber-500 bg-amber-100 text-amber-900"
+                  : "border-amber-400 text-amber-700 hover:bg-amber-100"
+              }`}
             >
               Fav
             </button>
             <button
               type="button"
               onClick={() => onToggleHidden(item)}
-              className="inline-flex w-full justify-center rounded-md border border-slate-400 px-2 py-1 text-xs font-semibold text-slate-700 transition hover:bg-slate-100"
+              aria-pressed={item.hidden}
+              className={`inline-flex w-full justify-center rounded-md border px-2 py-1 text-xs font-semibold transition ${
+                item.hidden
+                  ? "border-slate-900 bg-slate-900 text-white"
+                  : "border-slate-400 text-slate-700 hover:bg-slate-100"
+              }`}
             >
               Hide
+            </button>
+            <button
+              type="button"
+              onClick={() => onEditNote(item)}
+              className={`inline-flex w-full justify-center rounded-md border px-2 py-1 text-xs font-semibold transition ${
+                item.note_text
+                  ? "border-blue-500 bg-blue-100 text-blue-900"
+                  : "border-blue-300 text-blue-700 hover:bg-blue-100"
+              }`}
+            >
+              Note
             </button>
           </div>
         </article>

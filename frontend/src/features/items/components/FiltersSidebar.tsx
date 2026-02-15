@@ -227,7 +227,7 @@ export default function FiltersSidebar({ itemsQuery }: FiltersSidebarProps) {
               setSellerInput("");
             }
           }}
-          placeholder="Type seller"
+          placeholder="Type seller and press Enter"
           className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-400"
         />
         <SuggestionsList id="seller-suggestions" suggestions={sellerSuggestions} />
@@ -267,7 +267,7 @@ export default function FiltersSidebar({ itemsQuery }: FiltersSidebarProps) {
               setMainCategoryInput("");
             }
           }}
-          placeholder="Type main category"
+          placeholder="Type main category and press Enter"
           className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-400"
         />
         <datalist id="main-category-suggestions">
@@ -284,10 +284,7 @@ export default function FiltersSidebar({ itemsQuery }: FiltersSidebarProps) {
         >
           Categories
         </label>
-        <TagPills
-          values={query.category}
-          onRemove={(value) => removeTag("category", value)}
-        />
+        <TagPills values={query.category} onRemove={(value) => removeTag("category", value)} />
         <input
           id="filter-categories"
           list="category-suggestions"
@@ -313,7 +310,7 @@ export default function FiltersSidebar({ itemsQuery }: FiltersSidebarProps) {
               setCategoryInput("");
             }
           }}
-          placeholder="Type category"
+          placeholder="Type category and press Enter"
           className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-400"
         />
         <SuggestionsList id="category-suggestions" suggestions={categorySuggestions} />
@@ -341,9 +338,7 @@ export default function FiltersSidebar({ itemsQuery }: FiltersSidebarProps) {
             type="checkbox"
             className="accent-amber-400"
             checked={query.show_hidden}
-            onChange={(event) =>
-              updateQuery({ show_hidden: event.target.checked, page: 1 })
-            }
+            onChange={(event) => updateQuery({ show_hidden: event.target.checked, page: 1 })}
           />
           Show hidden items
         </label>
@@ -352,9 +347,7 @@ export default function FiltersSidebar({ itemsQuery }: FiltersSidebarProps) {
             type="checkbox"
             className="accent-amber-400"
             checked={query.favorite}
-            onChange={(event) =>
-              updateQuery({ favorite: event.target.checked, page: 1 })
-            }
+            onChange={(event) => updateQuery({ favorite: event.target.checked, page: 1 })}
           />
           Favorites only
         </label>

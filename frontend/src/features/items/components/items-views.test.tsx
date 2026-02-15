@@ -1,7 +1,10 @@
-import { render, screen } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
+import { useState } from "react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, vi } from "vitest";
 
+import AppShell from "../../../components/layout/AppShell";
+import type { NavbarMenuAction } from "../../../components/layout/menu-actions";
 import ItemsPage from "../ItemsPage";
 import type { ItemRow } from "../api";
 
@@ -16,11 +19,15 @@ const sampleItem: ItemRow = {
   category: "Electric Guitars",
   posted_at: "2025-01-01T12:00:00",
   ends_at: "2025-01-02T12:00:00",
-  ends_in: "in 2 days",
   web_url: "https://www.ebay.com/itm/1",
   hidden: false,
   favorite: false,
+  note_text: null,
+  note_created_at: null,
+  note_last_modified: null,
 };
+let rows: ItemRow[] = [sampleItem];
+const { updateItemNoteMock } = vi.hoisted(() => ({ updateItemNoteMock: vi.fn() }));
 
 let queryState = {
   seller: [],
@@ -50,10 +57,10 @@ vi.mock("../useItemsQuery", () => ({
   useItemsQuery: () => ({
     query: queryState,
     data: {
-      items: [sampleItem],
+      items: rows,
       page: 1,
       page_size: 100,
-      total: 1,
+      total: rows.length,
       total_pages: 1,
       has_next: false,
       has_prev: false,
@@ -72,10 +79,17 @@ vi.mock("../api", async (importOriginal) => {
     ...actual,
     toggleFavorite: vi.fn().mockResolvedValue(undefined),
     toggleHidden: vi.fn().mockResolvedValue(undefined),
+    updateItemNote: updateItemNoteMock.mockResolvedValue({
+      item_id: "1",
+      note_text: "watch this one",
+      note_created_at: "2025-01-01T12:00:00",
+      note_last_modified: "2025-01-01T12:05:00",
+    }),
   };
 });
 
 beforeEach(() => {
+  window.localStorage.clear();
   queryState = {
     seller: [],
     category: [],
@@ -88,7 +102,9 @@ beforeEach(() => {
     page: 1,
     page_size: 100,
   };
+  rows = [sampleItem];
   updateQuery.mockClear();
+  updateItemNoteMock.mockClear();
 });
 
 afterEach(() => {
@@ -105,8 +121,13 @@ test("dense table is the default view", () => {
   expect(screen.getByRole("columnheader", { name: "Bids" })).toBeInTheDocument();
   expect(screen.getByRole("columnheader", { name: "Seller" })).toBeInTheDocument();
   expect(screen.getByRole("columnheader", { name: "Category" })).toBeInTheDocument();
+  expect(screen.getByRole("columnheader", { name: "Posted" })).toBeInTheDocument();
   expect(screen.getByRole("columnheader", { name: "Ends" })).toBeInTheDocument();
   expect(screen.getByRole("columnheader", { name: "Actions" })).toBeInTheDocument();
+  expect(screen.getByTestId("posted-1").textContent).not.toContain("T");
+  expect(screen.getByTestId("ends-1").textContent).not.toContain("T");
+  expect(screen.getByTestId("posted-1")).toHaveAttribute("title");
+  expect(screen.getByTestId("ends-1")).toHaveAttribute("title");
 });
 
 test("view switcher supports dense, hybrid, and cards", async () => {
@@ -119,14 +140,18 @@ test("view switcher supports dense, hybrid, and cards", async () => {
   expect(updateQuery).toHaveBeenCalledWith({ view: "hybrid", page: 1 });
   rerender(<ItemsPage />);
   expect(screen.getByTestId("view-hybrid")).toBeInTheDocument();
+  expect(screen.getByTestId("posted-1")).toHaveAttribute("title");
+  expect(screen.getByTestId("ends-1")).toHaveAttribute("title");
 
   await user.click(screen.getByRole("button", { name: "Cards" }));
   expect(updateQuery).toHaveBeenCalledWith({ view: "cards", page: 1 });
   rerender(<ItemsPage />);
   expect(screen.getByTestId("view-cards")).toBeInTheDocument();
+  expect(screen.getByTestId("posted-1")).toHaveAttribute("title");
+  expect(screen.getByTestId("ends-1")).toHaveAttribute("title");
 });
 
-test("title links to ebay and row actions include favorite and hide only", () => {
+test("title links to ebay and row actions include favorite, hide and note", () => {
   render(<ItemsPage />);
 
   const titleLink = screen.getByRole("link", { name: "Vintage Telecaster" });
@@ -134,5 +159,157 @@ test("title links to ebay and row actions include favorite and hide only", () =>
 
   expect(screen.getByRole("button", { name: "Fav" })).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Hide" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Note" })).toBeInTheDocument();
   expect(screen.queryByRole("button", { name: "Notify" })).not.toBeInTheDocument();
+});
+
+test("favorite and hide actions expose persistent active state", () => {
+  rows = [{ ...sampleItem, favorite: true, hidden: true }];
+  render(<ItemsPage />);
+
+  expect(screen.getByRole("button", { name: "Fav" })).toHaveAttribute("aria-pressed", "true");
+  expect(screen.getByRole("button", { name: "Hide" })).toHaveAttribute(
+    "aria-pressed",
+    "true"
+  );
+});
+
+test("dense table images keep square shape on mobile", () => {
+  render(<ItemsPage />);
+
+  const itemImage = screen.getByRole("img", { name: "Vintage Telecaster" });
+  expect(itemImage).toHaveClass("aspect-square");
+});
+
+test("view switcher provides compact icon controls on mobile", () => {
+  render(<ItemsPage />);
+
+  expect(screen.getByRole("button", { name: "Switch to table view" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Switch to hybrid view" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Switch to cards view" })).toBeInTheDocument();
+});
+
+test("note action opens editor and saves note text", async () => {
+  const user = userEvent.setup();
+  render(<ItemsPage />);
+
+  await user.click(screen.getByRole("button", { name: "Note" }));
+  expect(screen.getByRole("dialog", { name: "Edit item note" })).toBeInTheDocument();
+
+  const textArea = screen.getByLabelText("Personal note");
+  await user.clear(textArea);
+  await user.type(textArea, "watch this one");
+  await user.click(screen.getByRole("button", { name: "Save note" }));
+
+  await waitFor(() => {
+    expect(updateItemNoteMock).toHaveBeenCalledWith("1", "watch this one");
+  });
+});
+
+test("dense table supports column toggles and saved presets", async () => {
+  const user = userEvent.setup();
+  render(<ItemsPage />);
+
+  await user.click(screen.getByRole("button", { name: "Columns" }));
+  const sellerToggle = screen.getByRole("checkbox", { name: "Seller" });
+  expect(sellerToggle).toBeChecked();
+
+  await user.click(sellerToggle);
+  expect(screen.queryByRole("columnheader", { name: "Seller" })).not.toBeInTheDocument();
+
+  const presetName = screen.getByLabelText("Preset name");
+  await user.type(presetName, "No Seller");
+  await user.click(screen.getByRole("button", { name: "Save preset" }));
+
+  const presets = screen.getByLabelText("Column presets");
+  expect(presets).toHaveValue("custom:no-seller");
+
+  await user.click(screen.getByRole("checkbox", { name: "Seller" }));
+  expect(screen.getByRole("columnheader", { name: "Seller" })).toBeInTheDocument();
+
+  await user.selectOptions(presets, "custom:no-seller");
+  expect(screen.queryByRole("columnheader", { name: "Seller" })).not.toBeInTheDocument();
+});
+
+test("columns trigger is hidden when controls are provided by navbar menu", () => {
+  const onMenuActionsChange = vi.fn();
+
+  render(<ItemsPage onMenuActionsChange={onMenuActionsChange} />);
+
+  expect(screen.queryByRole("button", { name: "Columns" })).not.toBeInTheDocument();
+  expect(onMenuActionsChange).toHaveBeenCalledWith(
+    expect.arrayContaining([expect.objectContaining({ id: "columns", label: "Columns" })])
+  );
+});
+
+test("columns menu action opens the column controls dialog", async () => {
+  const user = userEvent.setup();
+  let latestActions: Array<{ id: string; onSelect: () => void }> = [];
+  const onMenuActionsChange = vi.fn((actions) => {
+    latestActions = actions as Array<{ id: string; onSelect: () => void }>;
+  });
+
+  render(<ItemsPage onMenuActionsChange={onMenuActionsChange} />);
+
+  await waitFor(() =>
+    expect(latestActions.some((action) => action.id === "columns")).toBe(true)
+  );
+
+  const columnsAction = latestActions.find((action) => action.id === "columns");
+  expect(columnsAction).toBeDefined();
+  act(() => {
+    columnsAction?.onSelect();
+  });
+  expect(screen.getByRole("dialog", { name: "Column controls" })).toBeInTheDocument();
+
+  await user.click(screen.getByRole("button", { name: "Close column controls" }));
+  expect(
+    screen.queryByRole("dialog", { name: "Column controls" })
+  ).not.toBeInTheDocument();
+});
+
+test("navbar menu item opens the column controls dialog end-to-end", async () => {
+  const user = userEvent.setup();
+
+  function Harness() {
+    const [menuActions, setMenuActions] = useState<NavbarMenuAction[]>([]);
+    return (
+      <AppShell activePath="/" menuActions={menuActions} sidebarEnabled={false}>
+        <ItemsPage onMenuActionsChange={setMenuActions} />
+      </AppShell>
+    );
+  }
+
+  render(<Harness />);
+
+  await user.click(screen.getByRole("button", { name: "Open navigation menu" }));
+  await user.click(screen.getByRole("button", { name: "Columns" }));
+  expect(screen.getByRole("dialog", { name: "Column controls" })).toBeInTheDocument();
+});
+
+test("seller and category labels add filters across table, hybrid, and card views", async () => {
+  const user = userEvent.setup();
+  const { rerender } = render(<ItemsPage />);
+
+  await user.click(screen.getByRole("button", { name: "Filter by seller alice" }));
+  expect(queryState.seller).toContain("alice");
+
+  await user.click(screen.getByRole("button", { name: "Filter by category Electric Guitars" }));
+  expect(queryState.category).toContain("Electric Guitars");
+
+  await user.click(screen.getByRole("button", { name: "Hybrid" }));
+  rerender(<ItemsPage />);
+
+  await user.click(screen.getByRole("button", { name: "Filter by seller alice" }));
+  await user.click(screen.getByRole("button", { name: "Filter by category Electric Guitars" }));
+  expect(queryState.seller).toContain("alice");
+  expect(queryState.category).toContain("Electric Guitars");
+
+  await user.click(screen.getByRole("button", { name: "Cards" }));
+  rerender(<ItemsPage />);
+
+  await user.click(screen.getByRole("button", { name: "Filter by seller alice" }));
+  await user.click(screen.getByRole("button", { name: "Filter by category Electric Guitars" }));
+  expect(queryState.seller).toContain("alice");
+  expect(queryState.category).toContain("Electric Guitars");
 });

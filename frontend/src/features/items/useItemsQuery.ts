@@ -12,6 +12,11 @@ export type QueryPatch =
   | Partial<ItemsQueryState>
   | ((prev: ItemsQueryState) => Partial<ItemsQueryState>);
 
+export interface UseItemsQueryConfig {
+  basePath?: string;
+  forceFavorite?: boolean;
+}
+
 export interface UseItemsQueryResult {
   query: ItemsQueryState;
   data: ItemsResponse | null;
@@ -21,10 +26,19 @@ export interface UseItemsQueryResult {
   resetQuery: () => void;
 }
 
-export function useItemsQuery(): UseItemsQueryResult {
-  const [query, setQuery] = useState<ItemsQueryState>(() =>
-    parseQueryState(window.location.search)
-  );
+export function useItemsQuery(config: UseItemsQueryConfig = {}): UseItemsQueryResult {
+  const { basePath = "/", forceFavorite = false } = config;
+
+  const [query, setQuery] = useState<ItemsQueryState>(() => {
+    const parsedQuery = parseQueryState(window.location.search);
+    if (forceFavorite) {
+      return {
+        ...parsedQuery,
+        favorite: true,
+      };
+    }
+    return parsedQuery;
+  });
   const [data, setData] = useState<ItemsResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -32,9 +46,9 @@ export function useItemsQuery(): UseItemsQueryResult {
   const queryString = useMemo(() => serializeQueryState(query), [query]);
 
   useEffect(() => {
-    const nextUrl = queryString ? `?${queryString}` : window.location.pathname;
+    const nextUrl = queryString ? `${basePath}?${queryString}` : basePath;
     window.history.replaceState(null, "", nextUrl);
-  }, [queryString]);
+  }, [basePath, queryString]);
 
   useEffect(() => {
     let canceled = false;
@@ -70,10 +84,14 @@ export function useItemsQuery(): UseItemsQueryResult {
   function updateQuery(patch: QueryPatch) {
     setQuery((prev) => {
       const nextPatch = typeof patch === "function" ? patch(prev) : patch;
-      return {
+      const nextQuery = {
         ...prev,
         ...nextPatch,
       };
+      if (forceFavorite) {
+        nextQuery.favorite = true;
+      }
+      return nextQuery;
     });
   }
 
@@ -83,6 +101,14 @@ export function useItemsQuery(): UseItemsQueryResult {
     loading,
     error,
     updateQuery,
-    resetQuery: () => setQuery(DEFAULT_QUERY_STATE),
+    resetQuery: () =>
+      setQuery(
+        forceFavorite
+          ? {
+              ...DEFAULT_QUERY_STATE,
+              favorite: true,
+            }
+          : DEFAULT_QUERY_STATE
+      ),
   };
 }

@@ -24,16 +24,24 @@ Set required credentials in `.env`:
 - `EBAY_CLIENT_ID`
 - `EBAY_CLIENT_SECRET`
 
-## Run Locally (Split Runtime)
+## Run Locally (Recommended)
 ```bash
 uv run ebay-watchlist fetch-updates --limit 100
+npm --prefix frontend run build
+uv run ebay-watchlist run-flask --host 127.0.0.1 --port 5001 --debug
+```
+
+- API and SPA are served together at `http://127.0.0.1:5001`
+- SPA routes: `/`, `/manage`, `/analytics`
+
+### Optional Frontend-Only Dev Server
+```bash
 uv run ebay-watchlist run-flask --host 127.0.0.1 --port 5001 --debug
 npm --prefix frontend run dev
 ```
 
-- API is served at `http://127.0.0.1:5001`
-- SPA homepage is served at `http://127.0.0.1:5173`
-- Existing Flask pages (still active during migration): `/manage`, `/analytics`
+- API: `http://127.0.0.1:5001`
+- Vite dev UI: `http://127.0.0.1:5173`
 
 Other useful CLI commands:
 - `uv run ebay-watchlist show-latest-items --limit 50`
@@ -43,9 +51,13 @@ Other useful CLI commands:
 ## UI Highlights (Phase 1 SPA)
 - Full-width pinned navbar and collapsible left filter sidebar.
 - Live filtering with URL query-state sync and no full page reloads.
-- Default dense table triage view with large thumbnails and eBay-linked titles.
+- Default dense table triage view with large square thumbnails and eBay-linked titles.
+- `Posted` and `Ends` columns are both present in dense view for fast recency triage.
+- `Posted` and `Ends` are humanized in the SPA, with exact timestamps available on hover.
 - Alternate `Hybrid` and `Cards` views for comparison/testing.
-- Row actions limited to `Fav` and `Hide`.
+- Row actions include `Fav`, `Hide`, and `Note`.
+- `Fav` and `Hide` buttons stay visually highlighted when active.
+- Per-item note editing is available from each view (`Note` action).
 - Mobile-first behavior: results first, filters closed until opened from menu.
 
 ## Quality Checks
@@ -68,13 +80,12 @@ Smoke docs check:
 - `uv run pytest tests/docs/test_readme_frontend_commands.py -q`
 
 ## Docker
-Use the shared image + split services setup:
+Use the shared image setup:
 ```bash
-docker compose up api web daemon
+docker compose up api daemon
 ```
 
-- `api` runs Flask on `5001`
-- `web` runs the SPA dev server on `5173`
+- `api` runs Flask on `5001` and serves both API + built SPA
 - `daemon` runs periodic fetch/cleanup
 
 ## Release Automation
@@ -86,4 +97,5 @@ docker compose up api web daemon
 
 ## Troubleshooting
 - If `fetch-updates` fails, verify `EBAY_CLIENT_ID` and `EBAY_CLIENT_SECRET`.
-- If the SPA cannot load items, ensure API is running on `:5001` and frontend dev server on `:5173`.
+- If `/` shows a message about missing SPA assets, run `npm --prefix frontend run build`.
+- If using Vite dev mode, ensure API is running on `:5001` and Vite on `:5173`.

@@ -10,7 +10,8 @@ const allowedHosts = allowedHostsEnv
       .filter((host) => host.length > 0)
   : true;
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
+  base: command === "build" ? "/static/spa/" : "/",
   plugins: [react()],
   server: {
     host: "0.0.0.0",
@@ -23,10 +24,14 @@ export default defineConfig({
       },
     },
   },
+  build: {
+    outDir: "../src/ebay_watchlist/web/static/spa",
+    emptyOutDir: true,
+  },
   test: {
     globals: true,
     environment: "jsdom",
     setupFiles: "./vitest.setup.ts",
     include: ["src/**/*.{test,spec}.ts", "src/**/*.{test,spec}.tsx"],
   },
-});
+}));
