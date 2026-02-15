@@ -43,4 +43,4 @@ services:
       interval: 30s
       timeout: 3s
       retries: 3
-    command: ["ebay-watchlist", "run-flask", "--host", "0.0.0.0", "--port", "5001"]
+    command: ["ebay-watchlist", "run-gunicorn", "--host", "0.0.0.0", "--port", "5001", "--workers", "2"]

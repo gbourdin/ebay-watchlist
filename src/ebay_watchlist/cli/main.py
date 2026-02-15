@@ -24,6 +24,7 @@ app.add_typer(management_app, name="config", help="Database configuration comman
 DEFAULT_CLEANUP_RETENTION_DAYS = 180
 DEFAULT_CLEANUP_INTERVAL_MINUTES = 24 * 60
 FETCH_INTERVAL_SECONDS = 600
+DEFAULT_GUNICORN_WORKERS = 2
 
 
 @app.command()
@@ -143,6 +144,29 @@ def run_loop(
 def run_flask(host: str | None = None, port: int | None = None, debug: bool = False):
     flask_app = create_app()
     flask_app.run(host=host, port=port, debug=debug)
+
+
+@app.command()
+def run_gunicorn(
+    host: str = "0.0.0.0",
+    port: int = 5001,
+    workers: int = DEFAULT_GUNICORN_WORKERS,
+):
+    if workers < 1:
+        raise ValueError("workers must be at least 1")
+
+    bind = f"{host}:{port}"
+    os.execvp(
+        "gunicorn",
+        [
+            "gunicorn",
+            "--bind",
+            bind,
+            "--workers",
+            str(workers),
+            "ebay_watchlist.web.app:create_app()",
+        ],
+    )
 
 
 def main():

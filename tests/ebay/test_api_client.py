@@ -1,5 +1,7 @@
-import requests
+import logging
 import os
+
+import requests
 
 from ebay_watchlist.ebay.api import EbayAPI
 
@@ -40,25 +42,19 @@ def test_401_triggers_reauth_and_single_retry():
     api.session = FakeSession(
         [
             FakeResponse(401, {}),
+            FakeResponse(200, {"access_token": "token-123"}),
             FakeResponse(200, {"itemSummaries": [{"itemId": "v1"}]}),
         ]
     )
     api.authenticated = True
 
-    auth_calls = {"count": 0}
-
-    def fake_authenticate():
-        auth_calls["count"] += 1
-        api.authenticated = True
-
-    api._authenticate = fake_authenticate
     api.parse_items = staticmethod(lambda items: ["ok"])  # type: ignore[method-assign]
 
     result = api.get_latest_items_for_sellers(["seller"], category_id=123, limit=1)
 
     assert result == ["ok"]
-    assert auth_calls["count"] == 1
     assert api.session.get_calls == 2
+    assert api.session.headers["Authorization"] == "Bearer token-123"
 
 
 def test_get_latest_items_handles_missing_item_summaries():
@@ -105,25 +101,18 @@ def test_get_item_snapshot_reauths_once_and_returns_payload():
     api.session = FakeSession(
         [
             FakeResponse(401, {}),
+            FakeResponse(200, {"access_token": "token-123"}),
             FakeResponse(200, {"itemId": "v1", "price": {"value": "10.0", "currency": "GBP"}}),
         ]
     )
     api.authenticated = True
 
-    auth_calls = {"count": 0}
-
-    def fake_authenticate():
-        auth_calls["count"] += 1
-        api.authenticated = True
-
-    api._authenticate = fake_authenticate
-
     payload = api.get_item_snapshot("v1|123")
 
     assert payload is not None
     assert payload["itemId"] == "v1"
-    assert auth_calls["count"] == 1
     assert api.session.get_calls == 2
+    assert api.session.headers["Authorization"] == "Bearer token-123"
 
 
 def test_get_item_snapshot_returns_none_for_404():
@@ -163,16 +152,14 @@ def test_get_with_reauth_allows_configured_status_without_raising():
 
 def test_get_with_reauth_allows_status_after_single_reauth():
     api = EbayAPI("id", "secret")
-    api.session = FakeSession([FakeResponse(401, {}), FakeResponse(404, {})])
+    api.session = FakeSession(
+        [
+            FakeResponse(401, {}),
+            FakeResponse(200, {"access_token": "token-123"}),
+            FakeResponse(404, {}),
+        ]
+    )
     api.authenticated = True
-
-    auth_calls = {"count": 0}
-
-    def fake_authenticate():
-        auth_calls["count"] += 1
-        api.authenticated = True
-
-    api._authenticate = fake_authenticate
 
     response = api._get_with_reauth(  # noqa: SLF001
         "https://api.example.test/resource",
@@ -180,11 +167,13 @@ def test_get_with_reauth_allows_status_after_single_reauth():
     )
 
     assert response.status_code == 404
-    assert auth_calls["count"] == 1
     assert api.session.get_calls == 2
+    assert api.session.headers["Authorization"] == "Bearer token-123"
 
 
-def test_authenticate_retries_after_ssl_error_with_minimal_openssl_env(monkeypatch):
+def test_authenticate_retries_after_ssl_error_with_minimal_openssl_env(
+    monkeypatch, caplog
+):
     class AuthSession:
         def __init__(self):
             self.headers = {}
@@ -200,11 +189,16 @@ def test_authenticate_retries_after_ssl_error_with_minimal_openssl_env(monkeypat
     api.session = AuthSession()
     monkeypatch.setenv("OPENSSL_CONF", "/broken/openssl.cnf")
     monkeypatch.setenv("OPENSSL_MODULES", "/broken/modules")
+    caplog.set_level(logging.WARNING, logger="ebay_watchlist.ebay.api")
 
     api._authenticate()
 
     assert api.authenticated is True
     assert api.session.post_calls == 2
     assert api.session.headers["Authorization"] == "Bearer token-123"
-    assert os.getenv("OPENSSL_CONF") == "/dev/null"
-    assert os.getenv("OPENSSL_MODULES") is None
+    assert os.getenv("OPENSSL_CONF") == "/broken/openssl.cnf"
+    assert os.getenv("OPENSSL_MODULES") == "/broken/modules"
+    assert any(
+        "temporary OpenSSL environment override" in message
+        for message in caplog.messages
+    )

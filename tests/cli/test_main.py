@@ -49,3 +49,27 @@ def test_main_closes_db_on_command_error(monkeypatch):
         cli_main.main()
 
     assert close_called["value"] is True
+
+
+def test_run_gunicorn_execs_expected_command(monkeypatch):
+    captured: dict[str, object] = {}
+
+    def fake_execvp(file: str, args: list[str]):
+        captured["file"] = file
+        captured["args"] = args
+        raise SystemExit(0)
+
+    monkeypatch.setattr(cli_main.os, "execvp", fake_execvp)
+
+    with pytest.raises(SystemExit):
+        cli_main.run_gunicorn(host="0.0.0.0", port=5001, workers=3)
+
+    assert captured["file"] == "gunicorn"
+    assert captured["args"] == [
+        "gunicorn",
+        "--bind",
+        "0.0.0.0:5001",
+        "--workers",
+        "3",
+        "ebay_watchlist.web.app:create_app()",
+    ]

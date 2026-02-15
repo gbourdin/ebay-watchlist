@@ -24,17 +24,17 @@ Set required credentials in `.env`:
 - `EBAY_CLIENT_ID`
 - `EBAY_CLIENT_SECRET`
 
-## Run Locally (Recommended)
+## Run Locally (Production-Like)
 ```bash
 uv run ebay-watchlist fetch-updates --limit 100
 npm --prefix frontend run build
-uv run ebay-watchlist run-flask --host 127.0.0.1 --port 5001 --debug
+uv run ebay-watchlist run-gunicorn --host 127.0.0.1 --port 5001 --workers 2
 ```
 
 - API and SPA are served together at `http://127.0.0.1:5001`
 - SPA routes: `/`, `/manage`, `/analytics`
 
-### Optional Frontend-Only Dev Server
+### Local Development (Flask + Vite)
 ```bash
 uv run ebay-watchlist run-flask --host 127.0.0.1 --port 5001 --debug
 npm --prefix frontend run dev
@@ -85,7 +85,7 @@ Use the shared image setup:
 docker compose up api daemon
 ```
 
-- `api` runs Flask on `5001` and serves both API + built SPA
+- `api` runs Gunicorn on `5001` and serves both API + built SPA
 - `daemon` runs periodic fetch/cleanup
 
 ## Release Automation
@@ -99,3 +99,4 @@ docker compose up api daemon
 - If `fetch-updates` fails, verify `EBAY_CLIENT_ID` and `EBAY_CLIENT_SECRET`.
 - If `/` shows a message about missing SPA assets, run `npm --prefix frontend run build`.
 - If using Vite dev mode, ensure API is running on `:5001` and Vite on `:5173`.
+- If `run-gunicorn` is missing, run `uv sync --dev` to install dependencies.

@@ -63,15 +63,29 @@ class EbayAPI:
                 OAUTH_TOKEN_URL, headers=headers, data=data, timeout=HTTP_TIMEOUT_SECONDS
             )
         except requests.exceptions.SSLError:
-            logger.exception(
+            logger.warning(
                 "TLS error while requesting eBay OAuth token. "
-                "Retrying once with minimal OpenSSL env."
+                "Retrying once with temporary OpenSSL environment override.",
+                exc_info=True,
             )
-            os.environ["OPENSSL_CONF"] = "/dev/null"
-            os.environ.pop("OPENSSL_MODULES", None)
-            auth_data = self.session.post(
-                OAUTH_TOKEN_URL, headers=headers, data=data, timeout=HTTP_TIMEOUT_SECONDS
-            )
+            previous_openssl_conf = os.environ.get("OPENSSL_CONF")
+            previous_openssl_modules = os.environ.get("OPENSSL_MODULES")
+            try:
+                os.environ["OPENSSL_CONF"] = "/dev/null"
+                os.environ.pop("OPENSSL_MODULES", None)
+                auth_data = self.session.post(
+                    OAUTH_TOKEN_URL, headers=headers, data=data, timeout=HTTP_TIMEOUT_SECONDS
+                )
+            finally:
+                if previous_openssl_conf is None:
+                    os.environ.pop("OPENSSL_CONF", None)
+                else:
+                    os.environ["OPENSSL_CONF"] = previous_openssl_conf
+
+                if previous_openssl_modules is None:
+                    os.environ.pop("OPENSSL_MODULES", None)
+                else:
+                    os.environ["OPENSSL_MODULES"] = previous_openssl_modules
         auth_data.raise_for_status()
         token_info = auth_data.json()
 
