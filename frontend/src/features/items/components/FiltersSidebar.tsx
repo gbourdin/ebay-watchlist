@@ -7,6 +7,16 @@ import {
 } from "../api";
 import type { ItemsQueryState } from "../query-state";
 import type { UseItemsQueryResult } from "../useItemsQuery";
+import {
+  loadSavedFilterViews,
+  loadWatchedSearches,
+  saveSavedFilterViews,
+  saveWatchedSearches,
+  savedViewIdFromName,
+  watchedSearchIdFromName,
+  type SavedFilterView,
+  type WatchedSearch,
+} from "../saved-filters";
 
 const MAIN_CATEGORY_OPTIONS = ["Musical Instruments", "Computers", "Videogames"];
 
@@ -68,6 +78,19 @@ function findMatchingOption(input: string, options: string[]): string | null {
   return null;
 }
 
+function buildSavedQuery(query: ItemsQueryState): SavedFilterView["query"] {
+  return {
+    seller: [...query.seller],
+    category: [...query.category],
+    main_category: [...query.main_category],
+    q: query.q,
+    favorite: query.favorite,
+    show_hidden: query.show_hidden,
+    sort: query.sort,
+    view: query.view,
+  };
+}
+
 function TagPills({
   values,
   onRemove,
@@ -117,6 +140,17 @@ export default function FiltersSidebar({ itemsQuery }: FiltersSidebarProps) {
   const [sellerInput, setSellerInput] = useState("");
   const [mainCategoryInput, setMainCategoryInput] = useState("");
   const [categoryInput, setCategoryInput] = useState("");
+  const [savedViews, setSavedViews] = useState<SavedFilterView[]>(() =>
+    loadSavedFilterViews()
+  );
+  const [savedViewName, setSavedViewName] = useState("");
+  const [selectedSavedViewId, setSelectedSavedViewId] = useState("");
+  const [watchedSearches, setWatchedSearches] = useState<WatchedSearch[]>(() =>
+    loadWatchedSearches()
+  );
+  const [watchedSearchName, setWatchedSearchName] = useState("");
+  const [watchedSearchMaxPrice, setWatchedSearchMaxPrice] = useState("");
+  const [selectedWatchedSearchId, setSelectedWatchedSearchId] = useState("");
 
   const [sellerSuggestions, setSellerSuggestions] = useState<Suggestion[]>([]);
   const [categorySuggestions, setCategorySuggestions] = useState<Suggestion[]>([]);
@@ -190,6 +224,104 @@ export default function FiltersSidebar({ itemsQuery }: FiltersSidebarProps) {
     }
     addTag(field, match);
     return true;
+  }
+
+  function handleSaveView() {
+    const name = savedViewName.trim();
+    if (!name) {
+      return;
+    }
+
+    const id = savedViewIdFromName(name);
+    const nextView: SavedFilterView = {
+      id,
+      name,
+      route_mode: itemsQuery.routeMode,
+      query: buildSavedQuery(query),
+    };
+    const nextSavedViews = [nextView, ...savedViews.filter((view) => view.id !== id)];
+    setSavedViews(nextSavedViews);
+    saveSavedFilterViews(nextSavedViews);
+    setSelectedSavedViewId(id);
+    setSavedViewName("");
+  }
+
+  function handleApplySavedView() {
+    const selected = savedViews.find((view) => view.id === selectedSavedViewId);
+    if (!selected) {
+      return;
+    }
+
+    itemsQuery.setRouteMode(selected.route_mode);
+    itemsQuery.updateQuery({
+      ...selected.query,
+      favorite: selected.route_mode === "favorites" ? true : selected.query.favorite,
+      page: 1,
+    });
+  }
+
+  function handleDeleteSavedView() {
+    if (!selectedSavedViewId) {
+      return;
+    }
+
+    const nextSavedViews = savedViews.filter((view) => view.id !== selectedSavedViewId);
+    setSavedViews(nextSavedViews);
+    saveSavedFilterViews(nextSavedViews);
+    setSelectedSavedViewId("");
+  }
+
+  function handleSaveWatchedSearch() {
+    const name = watchedSearchName.trim();
+    if (!name) {
+      return;
+    }
+
+    const id = watchedSearchIdFromName(name);
+    const nextSearch: WatchedSearch = {
+      id,
+      name,
+      q: query.q,
+      main_category: [...query.main_category],
+      category: [...query.category],
+      max_price: watchedSearchMaxPrice.trim() || null,
+    };
+    const nextWatchedSearches = [
+      nextSearch,
+      ...watchedSearches.filter((search) => search.id !== id),
+    ];
+    setWatchedSearches(nextWatchedSearches);
+    saveWatchedSearches(nextWatchedSearches);
+    setSelectedWatchedSearchId(id);
+    setWatchedSearchName("");
+  }
+
+  function handleApplyWatchedSearch() {
+    const selected = watchedSearches.find((search) => search.id === selectedWatchedSearchId);
+    if (!selected) {
+      return;
+    }
+
+    itemsQuery.setRouteMode("all");
+    itemsQuery.updateQuery({
+      q: selected.q,
+      main_category: [...selected.main_category],
+      category: [...selected.category],
+      page: 1,
+    });
+  }
+
+  function handleDeleteWatchedSearch() {
+    if (!selectedWatchedSearchId) {
+      return;
+    }
+
+    const nextWatchedSearches = watchedSearches.filter(
+      (search) => search.id !== selectedWatchedSearchId
+    );
+    setWatchedSearches(nextWatchedSearches);
+    saveWatchedSearches(nextWatchedSearches);
+    setSelectedWatchedSearchId("");
   }
 
   return (
@@ -386,6 +518,152 @@ export default function FiltersSidebar({ itemsQuery }: FiltersSidebarProps) {
             }`}
           >
             Favorites route
+          </button>
+        </div>
+      </section>
+
+      <section className="space-y-2 border-t border-slate-800 pt-3">
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-300">Saved Views</p>
+        <label
+          className="block text-xs font-semibold uppercase tracking-[0.14em] text-slate-300"
+          htmlFor="saved-view-name"
+        >
+          Saved view name
+        </label>
+        <div className="flex items-center gap-2">
+          <input
+            id="saved-view-name"
+            aria-label="Saved view name"
+            value={savedViewName}
+            onChange={(event) => setSavedViewName(event.target.value)}
+            placeholder="e.g. Guitar triage"
+            className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-400"
+          />
+          <button
+            type="button"
+            onClick={handleSaveView}
+            className="rounded-md border border-blue-700 bg-blue-700 px-2.5 py-2 text-xs font-semibold text-white hover:bg-blue-800"
+          >
+            Save view
+          </button>
+        </div>
+
+        <label
+          className="block text-xs font-semibold uppercase tracking-[0.14em] text-slate-300"
+          htmlFor="saved-view-select"
+        >
+          Saved views
+        </label>
+        <div className="flex items-center gap-2">
+          <select
+            id="saved-view-select"
+            aria-label="Saved views"
+            value={selectedSavedViewId}
+            onChange={(event) => setSelectedSavedViewId(event.target.value)}
+            className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100"
+          >
+            <option value="">Select saved view</option>
+            {savedViews.map((savedView) => (
+              <option key={savedView.id} value={savedView.id}>
+                {savedView.name}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            onClick={handleApplySavedView}
+            className="rounded-md border border-slate-500 px-2.5 py-2 text-xs font-semibold text-slate-100 hover:bg-slate-800"
+          >
+            Apply view
+          </button>
+          <button
+            type="button"
+            onClick={handleDeleteSavedView}
+            className="rounded-md border border-slate-500 px-2.5 py-2 text-xs font-semibold text-slate-100 hover:bg-slate-800"
+          >
+            Delete view
+          </button>
+        </div>
+      </section>
+
+      <section className="space-y-2 border-t border-slate-800 pt-3">
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-300">
+          Watched Searches
+        </p>
+        <label
+          className="block text-xs font-semibold uppercase tracking-[0.14em] text-slate-300"
+          htmlFor="watched-search-name"
+        >
+          Watched search name
+        </label>
+        <div className="flex items-center gap-2">
+          <input
+            id="watched-search-name"
+            aria-label="Watched search name"
+            value={watchedSearchName}
+            onChange={(event) => setWatchedSearchName(event.target.value)}
+            placeholder="e.g. Tele under 100"
+            className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-400"
+          />
+          <button
+            type="button"
+            onClick={handleSaveWatchedSearch}
+            className="rounded-md border border-blue-700 bg-blue-700 px-2.5 py-2 text-xs font-semibold text-white hover:bg-blue-800"
+          >
+            Save watched search
+          </button>
+        </div>
+
+        <label
+          className="block text-xs font-semibold uppercase tracking-[0.14em] text-slate-300"
+          htmlFor="watched-search-max-price"
+        >
+          Max price
+        </label>
+        <input
+          id="watched-search-max-price"
+          aria-label="Max price"
+          inputMode="decimal"
+          value={watchedSearchMaxPrice}
+          onChange={(event) => setWatchedSearchMaxPrice(event.target.value)}
+          placeholder="Optional"
+          className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-400"
+        />
+
+        <label
+          className="block text-xs font-semibold uppercase tracking-[0.14em] text-slate-300"
+          htmlFor="watched-search-select"
+        >
+          Watched searches
+        </label>
+        <div className="flex items-center gap-2">
+          <select
+            id="watched-search-select"
+            aria-label="Watched searches"
+            value={selectedWatchedSearchId}
+            onChange={(event) => setSelectedWatchedSearchId(event.target.value)}
+            className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100"
+          >
+            <option value="">Select watched search</option>
+            {watchedSearches.map((search) => (
+              <option key={search.id} value={search.id}>
+                {search.name}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            onClick={handleApplyWatchedSearch}
+            className="rounded-md border border-slate-500 px-2.5 py-2 text-xs font-semibold text-slate-100 hover:bg-slate-800"
+          >
+            Apply watched search
+          </button>
+          <button
+            type="button"
+            onClick={handleDeleteWatchedSearch}
+            className="rounded-md border border-slate-500 px-2.5 py-2 text-xs font-semibold text-slate-100 hover:bg-slate-800"
+          >
+            Delete watched search
           </button>
         </div>
       </section>
