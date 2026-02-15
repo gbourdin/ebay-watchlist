@@ -13,6 +13,7 @@ vi.mock("../features/items/components/FiltersSidebar", () => ({
 
 vi.mock("../features/items/useItemsQuery", () => ({
   useItemsQuery: () => ({
+    routeMode: "all",
     query: {
       seller: [],
       category: [],
@@ -29,6 +30,7 @@ vi.mock("../features/items/useItemsQuery", () => ({
     loading: false,
     error: null,
     updateQuery: vi.fn(),
+    setRouteMode: vi.fn(),
     resetQuery: vi.fn(),
   }),
 }));

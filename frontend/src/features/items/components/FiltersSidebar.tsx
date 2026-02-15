@@ -359,6 +359,36 @@ export default function FiltersSidebar({ itemsQuery }: FiltersSidebarProps) {
           Favorites only
         </label>
       </div>
+
+      <section className="space-y-2">
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-300">Route</p>
+        <div className="inline-flex rounded-lg border border-slate-700 p-1">
+          <button
+            type="button"
+            aria-pressed={itemsQuery.routeMode === "all"}
+            onClick={() => itemsQuery.setRouteMode("all")}
+            className={`rounded-md px-2.5 py-1.5 text-xs font-semibold transition ${
+              itemsQuery.routeMode === "all"
+                ? "bg-slate-100 text-slate-900"
+                : "text-slate-200 hover:bg-slate-800"
+            }`}
+          >
+            All items
+          </button>
+          <button
+            type="button"
+            aria-pressed={itemsQuery.routeMode === "favorites"}
+            onClick={() => itemsQuery.setRouteMode("favorites")}
+            className={`rounded-md px-2.5 py-1.5 text-xs font-semibold transition ${
+              itemsQuery.routeMode === "favorites"
+                ? "bg-amber-200 text-amber-900"
+                : "text-slate-200 hover:bg-slate-800"
+            }`}
+          >
+            Favorites route
+          </button>
+        </div>
+      </section>
     </form>
   );
 }

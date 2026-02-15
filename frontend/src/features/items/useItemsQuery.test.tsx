@@ -45,3 +45,24 @@ test("changing filter triggers fetch without full page reload", async () => {
   expect((fetch as ReturnType<typeof vi.fn>).mock.calls[1]?.[0]).toContain("q=guitar");
   expect(window.location.search).toContain("q=guitar");
 });
+
+test("favorites route enables favorite filter and supports in-app route switching", async () => {
+  window.history.replaceState(null, "", "/favorites");
+
+  const { result } = renderHook(() => useItemsQuery());
+
+  await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
+  expect((fetch as ReturnType<typeof vi.fn>).mock.calls[0]?.[0]).toContain("favorite=1");
+  expect(result.current.routeMode).toBe("favorites");
+  expect(window.location.pathname).toBe("/favorites");
+
+  await act(async () => {
+    result.current.setRouteMode("all");
+  });
+
+  await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
+  expect((fetch as ReturnType<typeof vi.fn>).mock.calls[1]?.[0]).not.toContain(
+    "favorite=1"
+  );
+  expect(window.location.pathname).toBe("/");
+});

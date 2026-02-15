@@ -50,11 +50,13 @@ function createItemsQueryMock(): UseItemsQueryResult {
   };
 
   const itemsQuery: UseItemsQueryResult = {
+    routeMode: "all",
     query,
     data: null,
     loading: false,
     error: null,
     updateQuery,
+    setRouteMode: vi.fn(),
     resetQuery: vi.fn(),
   };
 
@@ -81,6 +83,7 @@ function renderFiltersSidebarHarness() {
     latest.query = query;
 
     const itemsQuery: UseItemsQueryResult = {
+      routeMode: "all",
       query,
       data: null,
       loading: false,
@@ -94,6 +97,7 @@ function renderFiltersSidebarHarness() {
           };
         });
       },
+      setRouteMode: vi.fn(),
       resetQuery: vi.fn(),
     };
 

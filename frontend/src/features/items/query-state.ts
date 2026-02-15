@@ -1,5 +1,7 @@
 import type { ItemsSort, ItemsView } from "./api";
 
+export type ItemsRouteMode = "all" | "favorites";
+
 export interface ItemsQueryState {
   seller: string[];
   category: string[];
@@ -34,6 +36,15 @@ const SORTS: Set<ItemsSort> = new Set([
   "bids_desc",
 ]);
 const VIEWS: Set<ItemsView> = new Set(["table", "hybrid", "cards"]);
+
+export function parseRouteMode(pathname: string): ItemsRouteMode {
+  const normalized = pathname.replace(/\/+$/, "") || "/";
+  return normalized === "/favorites" ? "favorites" : "all";
+}
+
+export function routeModeToPath(routeMode: ItemsRouteMode): string {
+  return routeMode === "favorites" ? "/favorites" : "/";
+}
 
 function parsePositiveInt(value: string | null, fallback: number): number {
   if (!value) {
