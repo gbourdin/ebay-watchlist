@@ -151,6 +151,19 @@ export async function toggleHidden(itemId: string, value: boolean): Promise<void
   }
 }
 
+export async function refreshItem(itemId: string): Promise<ItemRow> {
+  const response = await fetch(`/api/v1/items/${encodeURIComponent(itemId)}/refresh`, {
+    method: "POST",
+  });
+
+  if (!response.ok) {
+    throw new Error(`refresh failed: ${response.status}`);
+  }
+
+  const payload = (await response.json()) as { item: ItemRow };
+  return payload.item;
+}
+
 export async function updateItemNote(
   itemId: string,
   noteText: string

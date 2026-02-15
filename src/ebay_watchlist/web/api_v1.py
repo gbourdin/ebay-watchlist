@@ -1,6 +1,9 @@
 import os
+import logging
+import ssl
 from math import ceil
 from datetime import datetime
+from urllib.parse import urljoin, urlparse
 
 from flask import Blueprint, jsonify, request
 
@@ -19,6 +22,7 @@ from ebay_watchlist.web.view_helpers import (
 )
 
 bp = Blueprint("api_v1", __name__, url_prefix="/api/v1")
+logger = logging.getLogger(__name__)
 DEFAULT_PAGE_SIZE = 100
 MAX_PAGE_SIZE = 200
 SUPPORTED_SORTS = {
@@ -57,6 +61,89 @@ def _to_iso8601(value: object) -> str:
     if isinstance(value, datetime):
         return value.isoformat()
     return str(value)
+
+
+def _to_naive_datetime(value: object | None) -> datetime | None:
+    if not isinstance(value, str):
+        return None
+
+    normalized = value.strip()
+    if not normalized:
+        return None
+
+    if normalized.endswith("Z"):
+        normalized = f"{normalized[:-1]}+00:00"
+
+    try:
+        parsed = datetime.fromisoformat(normalized)
+    except ValueError:
+        return None
+
+    if parsed.tzinfo is not None:
+        return parsed.replace(tzinfo=None)
+
+    return parsed
+
+
+def _normalize_web_url(web_url: str) -> str:
+    return urljoin(web_url, urlparse(web_url).path)
+
+
+def _extract_price(price_payload: object) -> tuple[str | None, str | None]:
+    if not isinstance(price_payload, dict):
+        return None, None
+
+    price_payload_dict = {
+        str(key): value for key, value in price_payload.items()
+    }
+    value = price_payload_dict.get("value")
+    currency = price_payload_dict.get("currency")
+    if value is None or currency is None:
+        return None, None
+
+    normalized_value = str(value).strip()
+    normalized_currency = str(currency).strip()
+    if not normalized_value or not normalized_currency:
+        return None, None
+
+    return normalized_value, normalized_currency
+
+
+def _apply_item_snapshot_update(item: Item, snapshot: dict) -> None:
+    price_value, price_currency = _extract_price(snapshot.get("price"))
+    if price_value is not None and price_currency is not None:
+        item.price = price_value
+        item.price_currency = price_currency
+
+    current_bid_value, current_bid_currency = _extract_price(snapshot.get("currentBidPrice"))
+    if current_bid_value is not None and current_bid_currency is not None:
+        item.current_bid_price = current_bid_value
+        item.current_bid_price_currency = current_bid_currency
+    else:
+        item.current_bid_price = None
+        item.current_bid_price_currency = None
+
+    bid_count = snapshot.get("bidCount")
+    if bid_count is not None:
+        try:
+            item.bid_count = int(str(bid_count))
+        except (TypeError, ValueError):
+            pass
+
+    item_end_date = _to_naive_datetime(snapshot.get("itemEndDate"))
+    if item_end_date is not None:
+        item.end_date = item_end_date
+
+    item_creation_date = _to_naive_datetime(snapshot.get("itemCreationDate"))
+    if item_creation_date is not None:
+        item.creation_date = item_creation_date
+
+    item_web_url = snapshot.get("itemWebUrl")
+    if isinstance(item_web_url, str) and item_web_url.strip():
+        item.web_url = _normalize_web_url(item_web_url.strip())
+
+    item.db_update_date = datetime.now()
+    item.save()
 
 
 def _normalize_sort(sort_value: str) -> str:
@@ -325,6 +412,64 @@ def upsert_note(item_id: str):
             "note_last_modified": _to_iso8601(note.last_modified),
         }
     )
+
+
+@bp.route("/items/<item_id>/refresh", methods=["POST"])
+def refresh_item(item_id: str):
+    _ = connect_db()
+    item = Item.get_or_none(item_id=item_id)
+    if item is None:
+        logger.warning("Manual refresh requested for missing local item item_id=%s", item_id)
+        return jsonify({"error": "item not found"}), 404
+
+    client_id = os.getenv("EBAY_CLIENT_ID")
+    client_secret = os.getenv("EBAY_CLIENT_SECRET")
+    if not client_id or not client_secret:
+        logger.warning(
+            "Manual refresh unavailable for item_id=%s: missing eBay credentials",
+            item_id,
+        )
+        return (
+            jsonify(
+                {"error": "refresh unavailable: missing EBAY_CLIENT_ID or EBAY_CLIENT_SECRET"}
+            ),
+            503,
+        )
+
+    marketplace_id = os.getenv("EBAY_MARKETPLACE_ID", "EBAY_GB")
+    api = EbayAPI(
+        client_id=client_id,
+        client_secret=client_secret,
+        marketplace_id=marketplace_id,
+    )
+
+    try:
+        snapshot = api.get_item_snapshot(item_id=item_id)
+    except Exception:
+        logger.exception(
+            "Manual refresh failed for item_id=%s | openssl=%s OPENSSL_CONF=%r "
+            "OPENSSL_MODULES=%r SSL_CERT_FILE=%r SSL_CERT_DIR=%r",
+            item_id,
+            ssl.OPENSSL_VERSION,
+            os.getenv("OPENSSL_CONF"),
+            os.getenv("OPENSSL_MODULES"),
+            os.getenv("SSL_CERT_FILE"),
+            os.getenv("SSL_CERT_DIR"),
+        )
+        return jsonify({"error": "refresh failed: could not fetch item from ebay"}), 502
+
+    if snapshot is None:
+        logger.warning("Manual refresh eBay item not found for item_id=%s", item_id)
+        return jsonify({"error": "item not found on ebay"}), 404
+
+    _apply_item_snapshot_update(item, snapshot)
+
+    state = ItemRepository.get_item_states([item_id]).get(item_id)
+    note = ItemRepository.get_item_notes([item_id]).get(item_id)
+    item.hidden = bool(state.hidden) if state is not None else False
+    item.favorite = bool(state.favorite) if state is not None else False
+
+    return jsonify({"item": _serialize_item(item, note=note)})
 
 
 @bp.route("/suggestions/sellers")

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import {
+  refreshItem,
   toggleFavorite,
   toggleHidden,
   updateItemNote,
@@ -22,13 +23,7 @@ import {
 } from "./table-columns";
 import type { NavbarMenuAction } from "../../components/layout/menu-actions";
 
-type ItemPatch = {
-  favorite?: boolean;
-  hidden?: boolean;
-  note_text?: string | null;
-  note_created_at?: string | null;
-  note_last_modified?: string | null;
-};
+type ItemPatch = Partial<ItemRow>;
 
 type FilterField = "seller" | "category";
 
@@ -43,6 +38,7 @@ export default function ItemsPage({ itemsQuery, onMenuActionsChange }: ItemsPage
   const [actionError, setActionError] = useState<string | null>(null);
   const [noteEditorItem, setNoteEditorItem] = useState<ItemRow | null>(null);
   const [noteSaving, setNoteSaving] = useState(false);
+  const [refreshingItemIds, setRefreshingItemIds] = useState<Record<string, boolean>>({});
   const [visibleColumns, setVisibleColumns] = useState<DenseTableColumnKey[]>(
     loadStoredDenseTableColumns
   );
@@ -84,24 +80,7 @@ export default function ItemsPage({ itemsQuery, onMenuActionsChange }: ItemsPage
         return item;
       }
 
-      const nextItem = { ...item };
-      if (patch.favorite !== undefined) {
-        nextItem.favorite = patch.favorite;
-      }
-      if (patch.hidden !== undefined) {
-        nextItem.hidden = patch.hidden;
-      }
-      if (patch.note_text !== undefined) {
-        nextItem.note_text = patch.note_text;
-      }
-      if (patch.note_created_at !== undefined) {
-        nextItem.note_created_at = patch.note_created_at;
-      }
-      if (patch.note_last_modified !== undefined) {
-        nextItem.note_last_modified = patch.note_last_modified;
-      }
-
-      return nextItem;
+      return { ...item, ...patch };
     });
   }, [data?.items, optimisticState]);
 
@@ -204,6 +183,29 @@ export default function ItemsPage({ itemsQuery, onMenuActionsChange }: ItemsPage
     }
   }
 
+  async function handleRefresh(item: ItemRow) {
+    setActionError(null);
+    setRefreshingItemIds((prev) => ({ ...prev, [item.item_id]: true }));
+
+    try {
+      const refreshedItem = await refreshItem(item.item_id);
+      setOptimisticState((prev) => ({
+        ...prev,
+        [item.item_id]: {
+          ...prev[item.item_id],
+          ...refreshedItem,
+        },
+      }));
+    } catch {
+      setActionError("Could not refresh item data. Please retry.");
+    } finally {
+      setRefreshingItemIds((prev) => ({
+        ...prev,
+        [item.item_id]: false,
+      }));
+    }
+  }
+
   function onSortChange(sort: ItemsSort) {
     updateQuery({ sort, page: 1 });
   }
@@ -265,6 +267,8 @@ export default function ItemsPage({ itemsQuery, onMenuActionsChange }: ItemsPage
             visibleColumns={visibleColumns}
             onToggleFavorite={handleFavorite}
             onToggleHidden={handleHidden}
+            onRefreshItem={handleRefresh}
+            isRefreshingItem={(itemId) => Boolean(refreshingItemIds[itemId])}
             onAddSellerFilter={handleAddSellerFilter}
             onAddCategoryFilter={handleAddCategoryFilter}
             onEditNote={setNoteEditorItem}
@@ -277,6 +281,8 @@ export default function ItemsPage({ itemsQuery, onMenuActionsChange }: ItemsPage
           items={items}
           onToggleFavorite={handleFavorite}
           onToggleHidden={handleHidden}
+          onRefreshItem={handleRefresh}
+          isRefreshingItem={(itemId) => Boolean(refreshingItemIds[itemId])}
           onAddSellerFilter={handleAddSellerFilter}
           onAddCategoryFilter={handleAddCategoryFilter}
           onEditNote={setNoteEditorItem}
@@ -288,6 +294,8 @@ export default function ItemsPage({ itemsQuery, onMenuActionsChange }: ItemsPage
           items={items}
           onToggleFavorite={handleFavorite}
           onToggleHidden={handleHidden}
+          onRefreshItem={handleRefresh}
+          isRefreshingItem={(itemId) => Boolean(refreshingItemIds[itemId])}
           onAddSellerFilter={handleAddSellerFilter}
           onAddCategoryFilter={handleAddCategoryFilter}
           onEditNote={setNoteEditorItem}

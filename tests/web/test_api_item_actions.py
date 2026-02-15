@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+import logging
 
 from ebay_watchlist.db.models import Item
 from ebay_watchlist.web.app import create_app
@@ -94,3 +95,104 @@ def test_note_endpoint_rejects_non_string_payload(temp_db):
 
     assert response.status_code == 400
     assert response.get_json() == {"error": "note_text must be a string"}
+
+
+def test_refresh_item_updates_market_data(temp_db, monkeypatch):
+    insert_item("6")
+    app = create_app()
+    client = app.test_client()
+
+    class FakeEbayAPI:
+        def __init__(self, client_id: str, client_secret: str, marketplace_id: str = "EBAY_GB"):
+            _ = client_id, client_secret, marketplace_id
+
+        def get_item_snapshot(self, item_id: str):
+            assert item_id == "6"
+            return {
+                "price": {"value": "15.00", "currency": "GBP"},
+                "currentBidPrice": {"value": "18.50", "currency": "GBP"},
+                "bidCount": 3,
+                "itemEndDate": "2025-01-03T14:30:00Z",
+                "itemCreationDate": "2025-01-01T12:00:00Z",
+                "itemWebUrl": "https://www.ebay.com/itm/6?foo=bar",
+            }
+
+    monkeypatch.setenv("EBAY_CLIENT_ID", "client-id")
+    monkeypatch.setenv("EBAY_CLIENT_SECRET", "client-secret")
+    monkeypatch.setattr("ebay_watchlist.web.api_v1.EbayAPI", FakeEbayAPI)
+
+    response = client.post("/api/v1/items/6/refresh")
+
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert set(payload) == {"item"}
+    assert payload["item"]["item_id"] == "6"
+    assert payload["item"]["price"] == 18.5
+    assert payload["item"]["currency"] == "GBP"
+    assert payload["item"]["bids"] == 3
+    assert payload["item"]["ends_at"].startswith("2025-01-03T14:30:00")
+    assert payload["item"]["web_url"] == "https://www.ebay.com/itm/6"
+
+
+def test_refresh_item_requires_ebay_credentials(temp_db, monkeypatch):
+    insert_item("7")
+    app = create_app()
+    client = app.test_client()
+
+    monkeypatch.delenv("EBAY_CLIENT_ID", raising=False)
+    monkeypatch.delenv("EBAY_CLIENT_SECRET", raising=False)
+
+    response = client.post("/api/v1/items/7/refresh")
+
+    assert response.status_code == 503
+    assert response.get_json() == {
+        "error": "refresh unavailable: missing EBAY_CLIENT_ID or EBAY_CLIENT_SECRET"
+    }
+
+
+def test_refresh_item_returns_404_when_item_not_found_on_ebay(temp_db, monkeypatch):
+    insert_item("8")
+    app = create_app()
+    client = app.test_client()
+
+    class FakeEbayAPI:
+        def __init__(self, client_id: str, client_secret: str, marketplace_id: str = "EBAY_GB"):
+            _ = client_id, client_secret, marketplace_id
+
+        def get_item_snapshot(self, item_id: str):
+            assert item_id == "8"
+            return None
+
+    monkeypatch.setenv("EBAY_CLIENT_ID", "client-id")
+    monkeypatch.setenv("EBAY_CLIENT_SECRET", "client-secret")
+    monkeypatch.setattr("ebay_watchlist.web.api_v1.EbayAPI", FakeEbayAPI)
+
+    response = client.post("/api/v1/items/8/refresh")
+
+    assert response.status_code == 404
+    assert response.get_json() == {"error": "item not found on ebay"}
+
+
+def test_refresh_item_logs_failure_details(temp_db, monkeypatch, caplog):
+    insert_item("9")
+    app = create_app()
+    client = app.test_client()
+
+    class FakeEbayAPI:
+        def __init__(self, client_id: str, client_secret: str, marketplace_id: str = "EBAY_GB"):
+            _ = client_id, client_secret, marketplace_id
+
+        def get_item_snapshot(self, item_id: str):
+            assert item_id == "9"
+            raise RuntimeError("upstream boom")
+
+    monkeypatch.setenv("EBAY_CLIENT_ID", "client-id")
+    monkeypatch.setenv("EBAY_CLIENT_SECRET", "client-secret")
+    monkeypatch.setattr("ebay_watchlist.web.api_v1.EbayAPI", FakeEbayAPI)
+    caplog.set_level(logging.ERROR, logger="ebay_watchlist.web.api_v1")
+
+    response = client.post("/api/v1/items/9/refresh")
+
+    assert response.status_code == 502
+    assert response.get_json() == {"error": "refresh failed: could not fetch item from ebay"}
+    assert any("Manual refresh failed for item_id=9" in message for message in caplog.messages)

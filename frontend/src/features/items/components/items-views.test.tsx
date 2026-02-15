@@ -27,7 +27,10 @@ const sampleItem: ItemRow = {
   note_last_modified: null,
 };
 let rows: ItemRow[] = [sampleItem];
-const { updateItemNoteMock } = vi.hoisted(() => ({ updateItemNoteMock: vi.fn() }));
+const { updateItemNoteMock, refreshItemMock } = vi.hoisted(() => ({
+  updateItemNoteMock: vi.fn(),
+  refreshItemMock: vi.fn(),
+}));
 
 let queryState = {
   seller: [],
@@ -79,6 +82,7 @@ vi.mock("../api", async (importOriginal) => {
     ...actual,
     toggleFavorite: vi.fn().mockResolvedValue(undefined),
     toggleHidden: vi.fn().mockResolvedValue(undefined),
+    refreshItem: refreshItemMock,
     updateItemNote: updateItemNoteMock.mockResolvedValue({
       item_id: "1",
       note_text: "watch this one",
@@ -105,6 +109,13 @@ beforeEach(() => {
   rows = [sampleItem];
   updateQuery.mockClear();
   updateItemNoteMock.mockClear();
+  refreshItemMock.mockClear();
+  refreshItemMock.mockResolvedValue({
+    ...sampleItem,
+    price: 120,
+    bids: 9,
+    ends_at: "2025-01-03T12:00:00",
+  });
 });
 
 afterEach(() => {
@@ -160,6 +171,7 @@ test("title links to ebay and row actions include favorite, hide and note", () =
   expect(screen.getByRole("button", { name: "Fav" })).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Hide" })).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Note" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Refresh" })).toBeInTheDocument();
   expect(screen.queryByRole("button", { name: "Notify" })).not.toBeInTheDocument();
 });
 
@@ -204,6 +216,34 @@ test("note action opens editor and saves note text", async () => {
   await waitFor(() => {
     expect(updateItemNoteMock).toHaveBeenCalledWith("1", "watch this one");
   });
+});
+
+test("refresh action calls API and updates row data", async () => {
+  const user = userEvent.setup();
+  render(<ItemsPage />);
+
+  expect(screen.getByText("99 GBP")).toBeInTheDocument();
+  await user.click(screen.getByRole("button", { name: "Refresh" }));
+
+  await waitFor(() => {
+    expect(refreshItemMock).toHaveBeenCalledWith("1");
+  });
+  expect(screen.getByText("120 GBP")).toBeInTheDocument();
+});
+
+test("refresh action is available in table, hybrid, and card views", async () => {
+  const user = userEvent.setup();
+  const { rerender } = render(<ItemsPage />);
+
+  expect(screen.getByRole("button", { name: "Refresh" })).toBeInTheDocument();
+
+  await user.click(screen.getByRole("button", { name: "Hybrid" }));
+  rerender(<ItemsPage />);
+  expect(screen.getByRole("button", { name: "Refresh" })).toBeInTheDocument();
+
+  await user.click(screen.getByRole("button", { name: "Cards" }));
+  rerender(<ItemsPage />);
+  expect(screen.getByRole("button", { name: "Refresh" })).toBeInTheDocument();
 });
 
 test("dense table supports column toggles and saved presets", async () => {
