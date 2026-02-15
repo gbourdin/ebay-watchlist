@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import {
   toggleFavorite,
@@ -13,7 +13,13 @@ import HybridListView from "./components/HybridListView";
 import ItemsToolbar from "./components/ItemsToolbar";
 import CardGridView from "./components/CardGridView";
 import ItemNoteEditor from "./components/ItemNoteEditor";
+import DenseTableColumnControls from "./components/DenseTableColumnControls";
 import { useItemsQuery, type UseItemsQueryResult } from "./useItemsQuery";
+import {
+  loadStoredDenseTableColumns,
+  saveDenseTableColumns,
+  type DenseTableColumnKey,
+} from "./table-columns";
 
 type ItemPatch = {
   favorite?: boolean;
@@ -33,6 +39,13 @@ export default function ItemsPage({ itemsQuery }: ItemsPageProps) {
   const [actionError, setActionError] = useState<string | null>(null);
   const [noteEditorItem, setNoteEditorItem] = useState<ItemRow | null>(null);
   const [noteSaving, setNoteSaving] = useState(false);
+  const [visibleColumns, setVisibleColumns] = useState<DenseTableColumnKey[]>(
+    loadStoredDenseTableColumns
+  );
+
+  useEffect(() => {
+    saveDenseTableColumns(visibleColumns);
+  }, [visibleColumns]);
 
   const items = useMemo(() => {
     const rows = data?.items ?? [];
@@ -185,12 +198,19 @@ export default function ItemsPage({ itemsQuery }: ItemsPageProps) {
       {actionError && <p className="mb-3 text-sm text-red-600">{actionError}</p>}
 
       {query.view === "table" && (
-        <DenseTableView
-          items={items}
-          onToggleFavorite={handleFavorite}
-          onToggleHidden={handleHidden}
-          onEditNote={setNoteEditorItem}
-        />
+        <>
+          <DenseTableColumnControls
+            columns={visibleColumns}
+            onChangeColumns={setVisibleColumns}
+          />
+          <DenseTableView
+            items={items}
+            visibleColumns={visibleColumns}
+            onToggleFavorite={handleFavorite}
+            onToggleHidden={handleHidden}
+            onEditNote={setNoteEditorItem}
+          />
+        </>
       )}
 
       {query.view === "hybrid" && (

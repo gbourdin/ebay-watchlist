@@ -86,6 +86,7 @@ vi.mock("../api", async (importOriginal) => {
 });
 
 beforeEach(() => {
+  window.localStorage.clear();
   queryState = {
     seller: [],
     category: [],
@@ -200,4 +201,29 @@ test("note action opens editor and saves note text", async () => {
   await waitFor(() => {
     expect(updateItemNoteMock).toHaveBeenCalledWith("1", "watch this one");
   });
+});
+
+test("dense table supports column toggles and saved presets", async () => {
+  const user = userEvent.setup();
+  render(<ItemsPage />);
+
+  await user.click(screen.getByRole("button", { name: "Columns" }));
+  const sellerToggle = screen.getByRole("checkbox", { name: "Seller" });
+  expect(sellerToggle).toBeChecked();
+
+  await user.click(sellerToggle);
+  expect(screen.queryByRole("columnheader", { name: "Seller" })).not.toBeInTheDocument();
+
+  const presetName = screen.getByLabelText("Preset name");
+  await user.type(presetName, "No Seller");
+  await user.click(screen.getByRole("button", { name: "Save preset" }));
+
+  const presets = screen.getByLabelText("Column presets");
+  expect(presets).toHaveValue("custom:no-seller");
+
+  await user.click(screen.getByRole("checkbox", { name: "Seller" }));
+  expect(screen.getByRole("columnheader", { name: "Seller" })).toBeInTheDocument();
+
+  await user.selectOptions(presets, "custom:no-seller");
+  expect(screen.queryByRole("columnheader", { name: "Seller" })).not.toBeInTheDocument();
 });
