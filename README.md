@@ -45,6 +45,7 @@ Other useful CLI commands:
 - Live filtering with URL query-state sync and no full page reloads.
 - Default dense table triage view with large square thumbnails and eBay-linked titles.
 - `Posted` and `Ends` columns are both present in dense view for fast recency triage.
+- `Posted` and `Ends` are humanized in the SPA, with exact timestamps available on hover.
 - Alternate `Hybrid` and `Cards` views for comparison/testing.
 - Row actions include `Fav`, `Hide`, and `Note`.
 - `Fav` and `Hide` buttons stay visually highlighted when active.

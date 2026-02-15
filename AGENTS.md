@@ -30,6 +30,7 @@
 - Full backend checks before PR: `make ci`.
 - Add/update tests for filtering, sorting, pagination, and state toggles (`favorite`, `hidden`).
 - Add/update tests for note editing flows (`/api/v1/items/<id>/note`, modal save/cancel UX).
+- Keep relative time rendering (`Posted`, `Ends`) in frontend utilities and verify exact timestamp hover tooltips.
 
 ## Commit & Pull Request Guidelines
 - Use focused commits with conventional prefixes (`feat:`, `fix:`, `chore:`) or scoped variants (`feat(api): ...`).
