@@ -316,7 +316,16 @@ class ItemRepository:
 
     @staticmethod
     def delete_items_ended_before(cutoff: datetime) -> int:
-        return Item.delete().where(Item.end_date < cutoff).execute()
+        stale_item_ids = [
+            str(row.item_id)
+            for row in Item.select(Item.item_id).where(Item.end_date < cutoff)
+        ]
+        if not stale_item_ids:
+            return 0
+
+        ItemNote.delete().where(ItemNote.item_id.in_(stale_item_ids)).execute()
+        ItemState.delete().where(ItemState.item_id.in_(stale_item_ids)).execute()
+        return Item.delete().where(Item.item_id.in_(stale_item_ids)).execute()
 
     @staticmethod
     def update_item_state(

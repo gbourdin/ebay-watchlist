@@ -1,4 +1,5 @@
 from math import ceil
+from datetime import datetime
 
 from flask import Blueprint, jsonify, request
 
@@ -25,6 +26,30 @@ QUICK_CATEGORY_FILTERS: list[tuple[int, str]] = [
     (58058, "Computers"),
     (1249, "Videogames"),
 ]
+
+
+def _to_float(value: object | None, default: float = 0.0) -> float:
+    if value is None:
+        return default
+    try:
+        return float(str(value))
+    except (TypeError, ValueError):
+        return default
+
+
+def _to_int(value: object | None, default: int = 0) -> int:
+    if value is None:
+        return default
+    try:
+        return int(str(value))
+    except (TypeError, ValueError):
+        return default
+
+
+def _to_iso8601(value: object) -> str:
+    if isinstance(value, datetime):
+        return value.isoformat()
+    return str(value)
 
 
 def _normalize_sort(sort_value: str) -> str:
@@ -78,19 +103,19 @@ def _serialize_item(
         "item_id": str(item.item_id),
         "title": str(item.title),
         "image_url": str(item.image_url or ""),
-        "price": float(current_price) if current_price is not None else 0.0,
+        "price": _to_float(current_price),
         "currency": str(current_currency or ""),
-        "bids": int(item.bid_count),
+        "bids": _to_int(item.bid_count),
         "seller": str(item.seller_name),
         "category": str(item.category_name),
-        "posted_at": item.creation_date.isoformat(),
-        "ends_at": item.end_date.isoformat(),
+        "posted_at": _to_iso8601(item.creation_date),
+        "ends_at": _to_iso8601(item.end_date),
         "web_url": str(item.web_url),
         "hidden": bool(getattr(item, "hidden", False)),
         "favorite": bool(getattr(item, "favorite", False)),
         "note_text": str(note.note_text) if note is not None else None,
-        "note_created_at": note.created_at.isoformat() if note is not None else None,
-        "note_last_modified": note.last_modified.isoformat() if note is not None else None,
+        "note_created_at": _to_iso8601(note.created_at) if note is not None else None,
+        "note_last_modified": _to_iso8601(note.last_modified) if note is not None else None,
     }
 
 
@@ -223,8 +248,8 @@ def upsert_note(item_id: str):
         {
             "item_id": item_id,
             "note_text": str(note.note_text),
-            "note_created_at": note.created_at.isoformat(),
-            "note_last_modified": note.last_modified.isoformat(),
+            "note_created_at": _to_iso8601(note.created_at),
+            "note_last_modified": _to_iso8601(note.last_modified),
         }
     )
 
