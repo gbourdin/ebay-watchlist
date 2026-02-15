@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 
 import type { AppRoutePath } from "../../app/routes";
+import type { NavbarMenuAction } from "./menu-actions";
 import Navbar from "./Navbar";
 import Sidebar from "./Sidebar";
 
@@ -21,6 +22,7 @@ interface AppShellProps {
   sidebarEnabled?: boolean;
   activePath?: AppRoutePath;
   onNavigate?: (path: AppRoutePath) => void;
+  menuActions?: NavbarMenuAction[];
 }
 
 function RailButton({
@@ -71,6 +73,7 @@ export default function AppShell({
   sidebarEnabled = true,
   activePath = "/",
   onNavigate,
+  menuActions = [],
 }: AppShellProps) {
   const [desktopSidebarOpen, setDesktopSidebarOpen] = useState<boolean>(() => {
     if (typeof window === "undefined") {
@@ -98,6 +101,7 @@ export default function AppShell({
       <Navbar
         activePath={activePath}
         onNavigate={onNavigate}
+        menuActions={menuActions}
         onOpenSidebar={hasSidebar ? () => setMobileSidebarOpen(true) : undefined}
       />
 

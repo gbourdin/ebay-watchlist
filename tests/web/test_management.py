@@ -9,7 +9,7 @@ def test_manage_route_serves_spa_entry(temp_db):
     response = client.get("/manage")
 
     assert response.status_code == 200
-    assert b"id='root'" in response.data
+    assert b'id="root"' in response.data
 
 
 def test_watchlist_api_lists_enabled_sellers_and_categories(temp_db):

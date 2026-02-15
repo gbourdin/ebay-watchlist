@@ -45,8 +45,8 @@ def test_home_and_favorites_routes_serve_spa_entry(temp_db):
 
     assert home_response.status_code == 200
     assert favorites_response.status_code == 200
-    assert b"id='root'" in home_response.data
-    assert b"id='root'" in favorites_response.data
+    assert b'id="root"' in home_response.data
+    assert b'id="root"' in favorites_response.data
 
 
 def test_seller_route_redirects_to_home_with_query(temp_db):

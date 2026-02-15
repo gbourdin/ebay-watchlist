@@ -11,6 +11,7 @@ import {
   normalizeRoutePath,
   type AppRoutePath,
 } from "./routes";
+import type { NavbarMenuAction } from "../components/layout/menu-actions";
 
 function ItemsRouteView({
   path,
@@ -23,12 +24,14 @@ function ItemsRouteView({
     basePath: path,
     forceFavorite: path === "/favorites",
   });
+  const [menuActions, setMenuActions] = useState<NavbarMenuAction[]>([]);
 
   return (
     <AppShell
       activePath={path}
       onNavigate={onNavigate}
       sidebarEnabled
+      menuActions={menuActions}
       sidebar={<FiltersSidebar itemsQuery={itemsQuery} />}
       railActions={{
         favoritesOnly: itemsQuery.query.favorite,
@@ -45,7 +48,7 @@ function ItemsRouteView({
           })),
       }}
     >
-      <ItemsPage itemsQuery={itemsQuery} />
+      <ItemsPage itemsQuery={itemsQuery} onMenuActionsChange={setMenuActions} />
     </AppShell>
   );
 }

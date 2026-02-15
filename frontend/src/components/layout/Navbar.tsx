@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 
 import type { AppRoutePath } from "../../app/routes";
+import type { NavbarMenuAction } from "./menu-actions";
 
 interface NavbarProps {
   onOpenSidebar?: () => void;
   activePath?: AppRoutePath;
   onNavigate?: (path: AppRoutePath) => void;
+  menuActions?: NavbarMenuAction[];
 }
 
 type NavDestination = {
@@ -23,6 +25,7 @@ export default function Navbar({
   onOpenSidebar,
   activePath = "/",
   onNavigate,
+  menuActions = [],
 }: NavbarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
@@ -56,6 +59,14 @@ export default function Navbar({
     if (window.location.pathname !== path) {
       window.location.assign(path);
     }
+  }
+
+  function runMenuAction(action: NavbarMenuAction) {
+    if (action.disabled) {
+      return;
+    }
+    action.onSelect();
+    setMenuOpen(false);
   }
 
   return (
@@ -99,7 +110,7 @@ export default function Navbar({
                 type="button"
                 aria-label="Open filters"
                 onClick={onOpenSidebar}
-                className="inline-flex h-10 items-center rounded-lg border border-slate-500 px-3 text-sm font-medium text-slate-100 transition hover:bg-slate-800"
+                className="inline-flex h-10 items-center rounded-lg border border-slate-500 px-3 text-sm font-medium text-slate-100 transition hover:bg-slate-800 lg:hidden"
               >
                 Filters
               </button>
@@ -139,6 +150,21 @@ export default function Navbar({
                         </li>
                       );
                     })}
+                    {menuActions.length > 0 && (
+                      <li className="my-1 border-t border-slate-700" role="separator" />
+                    )}
+                    {menuActions.map((action) => (
+                      <li key={action.id}>
+                        <button
+                          type="button"
+                          onClick={() => runMenuAction(action)}
+                          disabled={action.disabled}
+                          className="block w-full px-3 py-2 text-left text-sm text-slate-200 transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent"
+                        >
+                          {action.label}
+                        </button>
+                      </li>
+                    ))}
                   </ul>
                 </div>
               )}

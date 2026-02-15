@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, vi } from "vitest";
 
@@ -226,6 +226,43 @@ test("dense table supports column toggles and saved presets", async () => {
 
   await user.selectOptions(presets, "custom:no-seller");
   expect(screen.queryByRole("columnheader", { name: "Seller" })).not.toBeInTheDocument();
+});
+
+test("columns trigger is hidden when controls are provided by navbar menu", () => {
+  const onMenuActionsChange = vi.fn();
+
+  render(<ItemsPage onMenuActionsChange={onMenuActionsChange} />);
+
+  expect(screen.queryByRole("button", { name: "Columns" })).not.toBeInTheDocument();
+  expect(onMenuActionsChange).toHaveBeenCalledWith(
+    expect.arrayContaining([expect.objectContaining({ id: "columns", label: "Columns" })])
+  );
+});
+
+test("columns menu action opens the column controls dialog", async () => {
+  const user = userEvent.setup();
+  let latestActions: Array<{ id: string; onSelect: () => void }> = [];
+  const onMenuActionsChange = vi.fn((actions) => {
+    latestActions = actions as Array<{ id: string; onSelect: () => void }>;
+  });
+
+  render(<ItemsPage onMenuActionsChange={onMenuActionsChange} />);
+
+  await waitFor(() =>
+    expect(latestActions.some((action) => action.id === "columns")).toBe(true)
+  );
+
+  const columnsAction = latestActions.find((action) => action.id === "columns");
+  expect(columnsAction).toBeDefined();
+  act(() => {
+    columnsAction?.onSelect();
+  });
+  expect(screen.getByRole("dialog", { name: "Column controls" })).toBeInTheDocument();
+
+  await user.click(screen.getByRole("button", { name: "Close column controls" }));
+  expect(
+    screen.queryByRole("dialog", { name: "Column controls" })
+  ).not.toBeInTheDocument();
 });
 
 test("seller and category labels add filters across table, hybrid, and card views", async () => {

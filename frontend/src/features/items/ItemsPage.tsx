@@ -20,6 +20,7 @@ import {
   saveDenseTableColumns,
   type DenseTableColumnKey,
 } from "./table-columns";
+import type { NavbarMenuAction } from "../../components/layout/menu-actions";
 
 type ItemPatch = {
   favorite?: boolean;
@@ -33,9 +34,10 @@ type FilterField = "seller" | "category";
 
 interface ItemsPageProps {
   itemsQuery?: UseItemsQueryResult;
+  onMenuActionsChange?: (actions: NavbarMenuAction[]) => void;
 }
 
-export default function ItemsPage({ itemsQuery }: ItemsPageProps) {
+export default function ItemsPage({ itemsQuery, onMenuActionsChange }: ItemsPageProps) {
   const { query, data, loading, error, updateQuery } = itemsQuery ?? useItemsQuery();
   const [optimisticState, setOptimisticState] = useState<Record<string, ItemPatch>>({});
   const [actionError, setActionError] = useState<string | null>(null);
@@ -44,10 +46,35 @@ export default function ItemsPage({ itemsQuery }: ItemsPageProps) {
   const [visibleColumns, setVisibleColumns] = useState<DenseTableColumnKey[]>(
     loadStoredDenseTableColumns
   );
+  const [columnsPanelOpen, setColumnsPanelOpen] = useState(false);
 
   useEffect(() => {
     saveDenseTableColumns(visibleColumns);
   }, [visibleColumns]);
+
+  useEffect(() => {
+    if (query.view !== "table") {
+      setColumnsPanelOpen(false);
+    }
+  }, [query.view]);
+
+  useEffect(() => {
+    if (!onMenuActionsChange) {
+      return;
+    }
+
+    if (query.view === "table") {
+      onMenuActionsChange([
+        {
+          id: "columns",
+          label: "Columns",
+          onSelect: () => setColumnsPanelOpen(true),
+        },
+      ]);
+    } else {
+      onMenuActionsChange([]);
+    }
+  }, [onMenuActionsChange, query.view]);
 
   const items = useMemo(() => {
     const rows = data?.items ?? [];
@@ -229,6 +256,9 @@ export default function ItemsPage({ itemsQuery }: ItemsPageProps) {
           <DenseTableColumnControls
             columns={visibleColumns}
             onChangeColumns={setVisibleColumns}
+            showTrigger={!onMenuActionsChange}
+            open={onMenuActionsChange ? columnsPanelOpen : undefined}
+            onOpenChange={onMenuActionsChange ? setColumnsPanelOpen : undefined}
           />
           <DenseTableView
             items={items}

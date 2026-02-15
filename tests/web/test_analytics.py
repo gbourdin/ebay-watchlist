@@ -43,7 +43,7 @@ def test_analytics_route_serves_spa_entry(temp_db):
     response = client.get("/analytics")
 
     assert response.status_code == 200
-    assert b"id='root'" in response.data
+    assert b'id="root"' in response.data
 
 
 def test_analytics_api_returns_empty_snapshot(temp_db):
