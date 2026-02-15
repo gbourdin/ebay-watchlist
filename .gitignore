@@ -228,6 +228,7 @@ frontend/playwright-report/
 frontend/.playwright-browsers/
 frontend/test-results/
 frontend/*.tsbuildinfo
+src/ebay_watchlist/web/static/spa/
 
 # Local Experiments
 notebooks/

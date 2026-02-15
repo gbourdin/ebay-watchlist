@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 
+import type { AppRoutePath } from "../../app/routes";
 import Navbar from "./Navbar";
 import Sidebar from "./Sidebar";
 
@@ -17,6 +18,9 @@ interface AppShellProps {
   children?: ReactNode;
   sidebar?: ReactNode;
   railActions?: RailActions;
+  sidebarEnabled?: boolean;
+  activePath?: AppRoutePath;
+  onNavigate?: (path: AppRoutePath) => void;
 }
 
 function RailButton({
@@ -60,7 +64,14 @@ function EyeIcon({ closed }: { closed: boolean }) {
   );
 }
 
-export default function AppShell({ children, sidebar, railActions }: AppShellProps) {
+export default function AppShell({
+  children,
+  sidebar,
+  railActions,
+  sidebarEnabled = true,
+  activePath = "/",
+  onNavigate,
+}: AppShellProps) {
   const [desktopSidebarOpen, setDesktopSidebarOpen] = useState<boolean>(() => {
     if (typeof window === "undefined") {
       return true;
@@ -74,90 +85,102 @@ export default function AppShell({ children, sidebar, railActions }: AppShellPro
     window.localStorage.setItem(SIDEBAR_STORAGE_KEY, desktopSidebarOpen ? "1" : "0");
   }, [desktopSidebarOpen]);
 
+  useEffect(() => {
+    if (!sidebarEnabled) {
+      setMobileSidebarOpen(false);
+    }
+  }, [sidebarEnabled]);
+
+  const hasSidebar = sidebarEnabled;
+
   return (
     <div className="min-h-screen bg-slate-100">
-      <Navbar onOpenSidebar={() => setMobileSidebarOpen(true)} />
+      <Navbar
+        activePath={activePath}
+        onNavigate={onNavigate}
+        onOpenSidebar={hasSidebar ? () => setMobileSidebarOpen(true) : undefined}
+      />
 
       <div className="pt-16">
         <div className="flex min-h-[calc(100vh-4rem)] items-stretch">
-          <aside
-            data-testid="desktop-sidebar"
-            data-open={desktopSidebarOpen ? "true" : "false"}
-            className={`fixed bottom-0 left-0 top-16 z-30 hidden shrink-0 border-r border-slate-800 bg-[#040823] transition-[width] duration-200 lg:block ${
-              desktopSidebarOpen ? "w-[320px]" : "w-[72px]"
-            }`}
-          >
-            {desktopSidebarOpen ? (
-              <div className="h-full overflow-y-auto">
-                <Sidebar
-                  heading="Filters"
-                  toggleLabel="←"
-                  onToggle={() => setDesktopSidebarOpen(false)}
-                  toggleAriaLabel="Collapse filters"
+          {hasSidebar && (
+            <aside
+              data-testid="desktop-sidebar"
+              data-open={desktopSidebarOpen ? "true" : "false"}
+              className={`fixed bottom-0 left-0 top-16 z-30 hidden shrink-0 border-r border-slate-800 bg-[#040823] transition-[width] duration-200 lg:block ${
+                desktopSidebarOpen ? "w-[320px]" : "w-[72px]"
+              }`}
+            >
+              {desktopSidebarOpen ? (
+                <div className="h-full overflow-y-auto">
+                  <Sidebar
+                    heading="Filters"
+                    toggleLabel="←"
+                    onToggle={() => setDesktopSidebarOpen(false)}
+                    toggleAriaLabel="Collapse filters"
+                  >
+                    {sidebar ?? <p>Sidebar controls will be implemented in the next tasks.</p>}
+                  </Sidebar>
+                </div>
+              ) : (
+                <div
+                  data-testid="sidebar-rail"
+                  className="flex h-full flex-col items-center gap-3 px-2 py-3"
                 >
-                  {sidebar ?? <p>Sidebar controls will be implemented in the next tasks.</p>}
-                </Sidebar>
-              </div>
-            ) : (
-              <div
-                data-testid="sidebar-rail"
-                className="flex h-full flex-col items-center gap-3 px-2 py-3"
-              >
-                <RailButton
-                  label="Expand filters panel"
-                  onClick={() => setDesktopSidebarOpen(true)}
-                  icon={<span className="text-lg font-semibold leading-none">›</span>}
-                />
-                {railActions && (
-                  <>
-                    <RailButton
-                      label={
-                        railActions.favoritesOnly
-                          ? "Disable favorites-only filter"
-                          : "Enable favorites-only filter"
-                      }
-                      onClick={railActions.onToggleFavoritesOnly}
-                      icon={
-                        <span
-                          className={`text-base leading-none ${
-                            railActions.favoritesOnly ? "text-amber-300" : "text-slate-300"
-                          }`}
-                        >
-                          {railActions.favoritesOnly ? "★" : "☆"}
-                        </span>
-                      }
-                    />
-                    <RailButton
-                      label={
-                        railActions.showHidden
-                          ? "Hide hidden items"
-                          : "Show hidden items"
-                      }
-                      onClick={railActions.onToggleShowHidden}
-                      icon={
-                        <span
-                          className={
-                            railActions.showHidden ? "text-sky-300" : "text-slate-300"
-                          }
-                        >
-                          <EyeIcon closed={!railActions.showHidden} />
-                        </span>
-                      }
-                    />
-                  </>
-                )}
-              </div>
-            )}
-          </aside>
+                  <RailButton
+                    label="Expand filters panel"
+                    onClick={() => setDesktopSidebarOpen(true)}
+                    icon={<span className="text-lg font-semibold leading-none">›</span>}
+                  />
+                  {railActions && (
+                    <>
+                      <RailButton
+                        label={
+                          railActions.favoritesOnly
+                            ? "Disable favorites-only filter"
+                            : "Enable favorites-only filter"
+                        }
+                        onClick={railActions.onToggleFavoritesOnly}
+                        icon={
+                          <span
+                            className={`text-base leading-none ${
+                              railActions.favoritesOnly ? "text-amber-300" : "text-slate-300"
+                            }`}
+                          >
+                            {railActions.favoritesOnly ? "★" : "☆"}
+                          </span>
+                        }
+                      />
+                      <RailButton
+                        label={
+                          railActions.showHidden
+                            ? "Hide hidden items"
+                            : "Show hidden items"
+                        }
+                        onClick={railActions.onToggleShowHidden}
+                        icon={
+                          <span
+                            className={railActions.showHidden ? "text-sky-300" : "text-slate-300"}
+                          >
+                            <EyeIcon closed={!railActions.showHidden} />
+                          </span>
+                        }
+                      />
+                    </>
+                  )}
+                </div>
+              )}
+            </aside>
+          )}
 
           <div
             className={`min-w-0 flex-1 p-4 lg:p-6 ${
-              desktopSidebarOpen ? "lg:pl-[344px]" : "lg:pl-[96px]"
+              hasSidebar ? (desktopSidebarOpen ? "lg:pl-[344px]" : "lg:pl-[96px]") : ""
             }`}
           >
             <main
               data-testid="results-main"
-              data-sidebar-open={desktopSidebarOpen ? "true" : "false"}
+              data-sidebar-open={hasSidebar && desktopSidebarOpen ? "true" : "false"}
               className="min-h-full min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:p-6"
             >
               {children ?? (
@@ -173,7 +196,7 @@ export default function AppShell({ children, sidebar, railActions }: AppShellPro
         </div>
       </div>
 
-      {mobileSidebarOpen && (
+      {hasSidebar && mobileSidebarOpen && (
         <div
           className="fixed inset-0 z-50 bg-slate-950/55 backdrop-blur-[1px] lg:hidden"
           role="presentation"

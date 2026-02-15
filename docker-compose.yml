@@ -44,24 +44,3 @@ services:
       timeout: 3s
       retries: 3
     command: ["ebay-watchlist", "run-flask", "--host", "0.0.0.0", "--port", "5001"]
-
-  web:
-    restart: always
-    container_name: ebay-watchlist-web
-    build:
-      context: .
-      dockerfile: Dockerfile
-    depends_on:
-      - api
-    ports:
-      - "5173:5173"
-    expose:
-      - 5173
-    environment:
-      API_PROXY_TARGET: http://api:5001
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    command: ["npm", "--prefix", "frontend", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5173"]

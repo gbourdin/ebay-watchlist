@@ -36,19 +36,37 @@ def insert_item(
     )
 
 
-def test_analytics_page_renders_empty_state(temp_db):
+def test_analytics_route_serves_spa_entry(temp_db):
     app = create_app()
     client = app.test_client()
 
     response = client.get("/analytics")
 
     assert response.status_code == 200
-    assert b'id="metric-total-items">0<' in response.data
-    assert b'id="metric-active-items">0<' in response.data
-    assert b'id="metric-ending-soon-items">0<' in response.data
+    assert b"id='root'" in response.data
 
 
-def test_analytics_page_shows_metrics_and_rankings(temp_db):
+def test_analytics_api_returns_empty_snapshot(temp_db):
+    app = create_app()
+    client = app.test_client()
+
+    response = client.get("/api/v1/analytics")
+
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["metrics"] == {
+        "total_items": 0,
+        "active_items": 0,
+        "ending_soon_items": 0,
+        "new_last_7_days": 0,
+        "hidden_items": 0,
+        "favorite_items": 0,
+    }
+    assert payload["top_sellers"] == []
+    assert payload["top_categories"] == []
+
+
+def test_analytics_api_shows_metrics_and_rankings(temp_db):
     now = datetime.now().replace(microsecond=0)
     insert_item(
         item_id="a1",
@@ -85,18 +103,23 @@ def test_analytics_page_shows_metrics_and_rankings(temp_db):
 
     ItemRepository.update_item_state("a1", favorite=True)
     ItemRepository.update_item_state("b1", hidden=True)
+
     app = create_app()
     client = app.test_client()
-    response = client.get("/analytics")
+    response = client.get("/api/v1/analytics")
 
     assert response.status_code == 200
-    assert b'id="metric-total-items">4<' in response.data
-    assert b'id="metric-active-items">3<' in response.data
-    assert b'id="metric-ending-soon-items">2<' in response.data
-    assert b'id="metric-new-last-7-days">3<' in response.data
-    assert b'id="metric-hidden-items">1<' in response.data
-    assert b'id="metric-favorite-items">1<' in response.data
+    payload = response.get_json()
+    assert payload["metrics"] == {
+        "total_items": 4,
+        "active_items": 3,
+        "ending_soon_items": 2,
+        "new_last_7_days": 3,
+        "hidden_items": 1,
+        "favorite_items": 1,
+    }
 
-    assert b"alice" in response.data
-    assert b"carol" in response.data
-    assert b"Electric Guitars" in response.data
+    assert {row["name"] for row in payload["top_sellers"]} >= {"alice", "carol"}
+    assert {row["name"] for row in payload["top_categories"]} >= {
+        "Electric Guitars"
+    }

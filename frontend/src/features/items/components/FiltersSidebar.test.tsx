@@ -28,7 +28,6 @@ beforeEach(() => {
 });
 
 function createItemsQueryMock(): UseItemsQueryResult {
-  let routeMode: "all" | "favorites" = "all";
   let query: ItemsQueryState = {
     seller: [] as string[],
     category: [] as string[],
@@ -52,22 +51,11 @@ function createItemsQueryMock(): UseItemsQueryResult {
   };
 
   const itemsQuery: UseItemsQueryResult = {
-    routeMode,
     query,
     data: null,
     loading: false,
     error: null,
     updateQuery,
-    setRouteMode: (nextRouteMode) => {
-      routeMode = nextRouteMode;
-      query = {
-        ...query,
-        favorite: nextRouteMode === "favorites",
-        page: 1,
-      };
-      itemsQuery.routeMode = routeMode;
-      itemsQuery.query = query;
-    },
     resetQuery: vi.fn(),
   };
 
@@ -76,10 +64,8 @@ function createItemsQueryMock(): UseItemsQueryResult {
 
 function renderFiltersSidebarHarness() {
   const latest = { query: null as ItemsQueryState | null };
-  const latestRoute = { routeMode: "all" as "all" | "favorites" };
 
   function Harness() {
-    const [routeMode, setRouteMode] = useState<"all" | "favorites">("all");
     const [query, setQuery] = useState<ItemsQueryState>({
       seller: [],
       category: [],
@@ -94,10 +80,8 @@ function renderFiltersSidebarHarness() {
     });
 
     latest.query = query;
-    latestRoute.routeMode = routeMode;
 
     const itemsQuery: UseItemsQueryResult = {
-      routeMode,
       query,
       data: null,
       loading: false,
@@ -111,14 +95,6 @@ function renderFiltersSidebarHarness() {
           };
         });
       },
-      setRouteMode: (nextRouteMode) => {
-        setRouteMode(nextRouteMode);
-        setQuery((prev) => ({
-          ...prev,
-          favorite: nextRouteMode === "favorites",
-          page: 1,
-        }));
-      },
       resetQuery: vi.fn(),
     };
 
@@ -129,7 +105,6 @@ function renderFiltersSidebarHarness() {
 
   return {
     getQuery: () => latest.query,
-    getRouteMode: () => latestRoute.routeMode,
   };
 }
 
@@ -179,49 +154,11 @@ test("seller input auto-adds on blur when value matches suggestion", async () =>
   await waitFor(() => expect(harness.getQuery()?.seller).toContain("alice_shop"));
 });
 
-test("can save and re-apply a saved filter view", async () => {
-  const user = userEvent.setup();
-  const harness = renderFiltersSidebarHarness();
+test("sidebar does not render routes, saved views, or watched searches controls", () => {
+  const itemsQuery = createItemsQueryMock();
+  render(<FiltersSidebar itemsQuery={itemsQuery} />);
 
-  await user.type(screen.getByLabelText("Search"), "telecaster");
-  await user.type(screen.getByLabelText("Sellers"), "alice{enter}");
-
-  await user.type(screen.getByLabelText("Saved view name"), "Alice Telecaster");
-  await user.click(screen.getByRole("button", { name: "Save view" }));
-
-  await user.clear(screen.getByLabelText("Search"));
-  await user.type(screen.getByLabelText("Search"), "drums");
-  expect(harness.getQuery()?.q).toBe("drums");
-
-  await user.selectOptions(screen.getByLabelText("Saved views"), "saved-view:alice-telecaster");
-  await user.click(screen.getByRole("button", { name: "Apply view" }));
-
-  expect(harness.getQuery()?.q).toBe("telecaster");
-  expect(harness.getQuery()?.seller).toContain("alice");
-});
-
-test("can save and apply a watched search entry", async () => {
-  const user = userEvent.setup();
-  const harness = renderFiltersSidebarHarness();
-
-  await user.type(screen.getByLabelText("Search"), "telecaster");
-  await user.type(screen.getByLabelText("Main Categories"), "Musical Instruments{enter}");
-  await user.type(screen.getByLabelText("Categories"), "Electric Guitars{enter}");
-
-  await user.type(screen.getByLabelText("Watched search name"), "Tele under 100");
-  await user.type(screen.getByLabelText("Max price"), "100");
-  await user.click(screen.getByRole("button", { name: "Save watched search" }));
-
-  await user.clear(screen.getByLabelText("Search"));
-  expect(harness.getQuery()?.q).toBe("");
-
-  await user.selectOptions(
-    screen.getByLabelText("Watched searches"),
-    "watched-search:tele-under-100"
-  );
-  await user.click(screen.getByRole("button", { name: "Apply watched search" }));
-
-  expect(harness.getQuery()?.q).toBe("telecaster");
-  expect(harness.getQuery()?.main_category).toContain("Musical Instruments");
-  expect(harness.getQuery()?.category).toContain("Electric Guitars");
+  expect(screen.queryByText("Route")).not.toBeInTheDocument();
+  expect(screen.queryByText("Saved Views")).not.toBeInTheDocument();
+  expect(screen.queryByText("Watched Searches")).not.toBeInTheDocument();
 });

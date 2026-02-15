@@ -1,14 +1,21 @@
+import os
 from math import ceil
 from datetime import datetime
 
 from flask import Blueprint, jsonify, request
 
 from ebay_watchlist.db.models import Item, ItemNote
-from ebay_watchlist.db.repositories import ItemRepository
+from ebay_watchlist.db.repositories import (
+    CategoryRepository,
+    ItemRepository,
+    SellerRepository,
+)
+from ebay_watchlist.ebay.api import EbayAPI
 from ebay_watchlist.web.db import connect_db
 from ebay_watchlist.web.view_helpers import (
     get_main_category_name_by_id,
     normalize_multi,
+    resolve_category_input_to_id,
 )
 
 bp = Blueprint("api_v1", __name__, url_prefix="/api/v1")
@@ -74,10 +81,7 @@ def _parse_page(raw_value: str | None) -> int:
 
 
 def _resolve_main_category_ids(selected_main_categories: list[str]) -> list[int]:
-    main_category_name_by_id = get_main_category_name_by_id(
-        quick_category_filters=QUICK_CATEGORY_FILTERS,
-        scraped_category_suggestions=ItemRepository.get_scraped_category_suggestions(),
-    )
+    main_category_name_by_id = _get_main_category_name_by_id()
     main_category_id_by_name = {
         category_name: category_id
         for category_id, category_name in main_category_name_by_id.items()
@@ -125,6 +129,75 @@ def _parse_boolean_value() -> tuple[bool | None, tuple[dict[str, str], int] | No
     if not isinstance(value, bool):
         return None, ({"error": "value must be a boolean"}, 400)
     return value, None
+
+
+def _get_main_category_name_by_id() -> dict[int, str]:
+    return get_main_category_name_by_id(
+        quick_category_filters=QUICK_CATEGORY_FILTERS,
+        scraped_category_suggestions=ItemRepository.get_scraped_category_suggestions(),
+    )
+
+
+def _search_watchlist_category_suggestions(
+    query: str,
+    marketplace_id: str | None = None,
+) -> list[dict[str, str]]:
+    normalized_query = query.strip()
+    if len(normalized_query) < 2:
+        return []
+
+    fallback = [
+        {"id": str(category_id), "name": category_name, "path": category_name}
+        for category_id, category_name in ItemRepository.get_scraped_category_suggestions()
+        if normalized_query.lower() in category_name.lower()
+    ][:15]
+
+    client_id = os.getenv("EBAY_CLIENT_ID")
+    client_secret = os.getenv("EBAY_CLIENT_SECRET")
+    if not client_id or not client_secret:
+        return fallback
+
+    resolved_marketplace_id = marketplace_id or os.getenv("EBAY_MARKETPLACE_ID", "EBAY_GB")
+    api = EbayAPI(
+        client_id=client_id,
+        client_secret=client_secret,
+        marketplace_id=resolved_marketplace_id,
+    )
+    try:
+        return api.get_category_suggestions(
+            query=normalized_query,
+            marketplace_id=resolved_marketplace_id,
+            limit=15,
+        )
+    except Exception:
+        return fallback
+
+
+def _snapshot_metric(
+    snapshot: dict[str, int | list[tuple[str, int]]],
+    key: str,
+) -> int:
+    value = snapshot.get(key)
+    return value if isinstance(value, int) else 0
+
+
+def _snapshot_ranking(
+    snapshot: dict[str, int | list[tuple[str, int]]],
+    key: str,
+) -> list[tuple[str, int]]:
+    value = snapshot.get(key)
+    if not isinstance(value, list):
+        return []
+
+    rows: list[tuple[str, int]] = []
+    for row in value:
+        if not isinstance(row, tuple) or len(row) != 2:
+            continue
+
+        name, count = row
+        rows.append((str(name), int(count)))
+
+    return rows
 
 
 @bp.route("/items")
@@ -280,5 +353,136 @@ def category_suggestions():
     return jsonify(
         {
             "items": [{"value": suggestion, "label": suggestion} for suggestion in suggestions]
+        }
+    )
+
+
+@bp.route("/watchlist")
+def watchlist():
+    _ = connect_db()
+    category_name_by_id = _get_main_category_name_by_id()
+    watched_sellers = sorted(SellerRepository.get_enabled_sellers())
+    watched_category_ids = CategoryRepository.get_enabled_categories()
+    watched_categories = [
+        {
+            "id": int(category_id),
+            "name": category_name_by_id.get(category_id, f"Category {category_id}"),
+        }
+        for category_id in watched_category_ids
+    ]
+    watched_categories.sort(key=lambda row: str(row["name"]).lower())
+
+    return jsonify(
+        {
+            "sellers": watched_sellers,
+            "categories": watched_categories,
+            "main_category_options": sorted(category_name_by_id.values()),
+        }
+    )
+
+
+@bp.route("/watchlist/sellers", methods=["POST"])
+def add_watchlist_seller():
+    _ = connect_db()
+    payload = request.get_json(silent=True) or {}
+    seller_name = (payload.get("seller_name") or "").strip()
+    if not seller_name:
+        return jsonify({"error": "seller_name is required"}), 400
+
+    SellerRepository.add_seller(seller_name)
+    return jsonify({"seller_name": seller_name}), 201
+
+
+@bp.route("/watchlist/sellers/<seller_name>", methods=["DELETE"])
+def remove_watchlist_seller(seller_name: str):
+    _ = connect_db()
+    cleaned = seller_name.strip()
+    if not cleaned:
+        return jsonify({"error": "seller_name is required"}), 400
+
+    SellerRepository.remove_seller(cleaned)
+    return jsonify({"seller_name": cleaned})
+
+
+@bp.route("/watchlist/categories", methods=["POST"])
+def add_watchlist_category():
+    _ = connect_db()
+    payload = request.get_json(silent=True) or {}
+    category_name_by_id = _get_main_category_name_by_id()
+
+    category_id_raw = str(payload.get("category_id") or "").strip()
+    category_name = str(payload.get("category_name") or "").strip()
+
+    category_id: int | None
+    if category_id_raw.isdigit():
+        category_id = int(category_id_raw)
+    else:
+        category_id = resolve_category_input_to_id(
+            category_input=category_name,
+            category_name_by_id=category_name_by_id,
+        )
+
+    if category_id is None:
+        return (
+            jsonify(
+                {
+                    "error": "Unknown category. Provide a valid category_id or known category_name."
+                }
+            ),
+            400,
+        )
+
+    CategoryRepository.add_category(category_id)
+    return jsonify(
+        {
+            "category_id": category_id,
+            "category_name": category_name_by_id.get(category_id, f"Category {category_id}"),
+        }
+    ), 201
+
+
+@bp.route("/watchlist/categories/<int:category_id>", methods=["DELETE"])
+def remove_watchlist_category(category_id: int):
+    _ = connect_db()
+    CategoryRepository.disable_category(category_id)
+    return jsonify({"category_id": category_id})
+
+
+@bp.route("/watchlist/category-suggestions")
+def watchlist_category_suggestions():
+    _ = connect_db()
+    query = request.args.get("q", "")
+    marketplace_id = request.args.get("marketplace_id")
+    suggestions = _search_watchlist_category_suggestions(
+        query=query,
+        marketplace_id=marketplace_id,
+    )
+    return jsonify({"suggestions": suggestions})
+
+
+@bp.route("/analytics")
+def analytics_snapshot():
+    _ = connect_db()
+    snapshot = ItemRepository.get_analytics_snapshot()
+    top_sellers = _snapshot_ranking(snapshot, "top_sellers")
+    top_categories = _snapshot_ranking(snapshot, "top_categories")
+    return jsonify(
+        {
+            "metrics": {
+                "total_items": _snapshot_metric(snapshot, "total_items"),
+                "active_items": _snapshot_metric(snapshot, "active_items"),
+                "ending_soon_items": _snapshot_metric(snapshot, "ending_soon_items"),
+                "new_last_7_days": _snapshot_metric(snapshot, "new_last_7_days"),
+                "hidden_items": _snapshot_metric(snapshot, "hidden_items"),
+                "favorite_items": _snapshot_metric(snapshot, "favorite_items"),
+            },
+            "top_sellers": [
+                {"name": str(name), "count": int(count)}
+                for name, count in top_sellers
+            ],
+            "top_categories": [
+                {"name": str(name), "count": int(count)}
+                for name, count in top_categories
+            ],
         }
     )

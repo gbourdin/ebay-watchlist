@@ -52,7 +52,6 @@ const updateQuery = vi.fn(
 
 vi.mock("../useItemsQuery", () => ({
   useItemsQuery: () => ({
-    routeMode: "all",
     query: queryState,
     data: {
       items: rows,
@@ -67,7 +66,6 @@ vi.mock("../useItemsQuery", () => ({
     loading: false,
     error: null,
     updateQuery,
-    setRouteMode: vi.fn(),
     resetQuery: vi.fn(),
   }),
 }));

@@ -30,33 +30,21 @@ def insert_item(item_id: str, title: str) -> None:
     )
 
 
-def test_home_hides_items_marked_hidden(temp_db):
-    insert_item("s1", "Hidden Item")
-    ItemRepository.update_item_state("s1", hidden=True)
-
-    app = create_app()
-    client = app.test_client()
-
-    response = client.get("/")
-
-    assert response.status_code == 200
-    assert b"Hidden Item" not in response.data
-
-
 def test_state_endpoint_can_toggle_favorite(temp_db):
     insert_item("s2", "Stateful Item")
 
     app = create_app()
     client = app.test_client()
 
-    response_favorite = client.post(
+    response = client.post(
         "/items/s2/state",
         data={"field": "favorite", "value": "1", "next": "/"},
-        follow_redirects=True,
     )
-    assert response_favorite.status_code == 200
-    assert b"Favorite" in response_favorite.data
-    assert b"Notified" not in response_favorite.data
+    assert response.status_code == 302
+
+    state = ItemRepository.get_item_states(["s2"]).get("s2")
+    assert state is not None
+    assert bool(state.favorite) is True
 
 
 def test_state_endpoint_can_hide_then_unhide_item(temp_db):
@@ -68,17 +56,19 @@ def test_state_endpoint_can_hide_then_unhide_item(temp_db):
     hidden_response = client.post(
         "/items/s3/state",
         data={"field": "hidden", "value": "1", "next": "/"},
-        follow_redirects=True,
     )
+    assert hidden_response.status_code == 302
 
-    assert hidden_response.status_code == 200
-    assert b"Toggle Hidden Item" not in hidden_response.data
+    hidden_state = ItemRepository.get_item_states(["s3"]).get("s3")
+    assert hidden_state is not None
+    assert bool(hidden_state.hidden) is True
 
     unhidden_response = client.post(
         "/items/s3/state",
         data={"field": "hidden", "value": "0", "next": "/"},
-        follow_redirects=True,
     )
+    assert unhidden_response.status_code == 302
 
-    assert unhidden_response.status_code == 200
-    assert b"Toggle Hidden Item" in unhidden_response.data
+    unhidden_state = ItemRepository.get_item_states(["s3"]).get("s3")
+    assert unhidden_state is not None
+    assert bool(unhidden_state.hidden) is False

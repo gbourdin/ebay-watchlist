@@ -3,11 +3,8 @@ import { useEffect, useMemo, useState } from "react";
 import { fetchItems, type ItemsResponse } from "./api";
 import {
   DEFAULT_QUERY_STATE,
-  parseRouteMode,
   parseQueryState,
-  routeModeToPath,
   serializeQueryState,
-  type ItemsRouteMode,
   type ItemsQueryState,
 } from "./query-state";
 
@@ -15,24 +12,26 @@ export type QueryPatch =
   | Partial<ItemsQueryState>
   | ((prev: ItemsQueryState) => Partial<ItemsQueryState>);
 
+export interface UseItemsQueryConfig {
+  basePath?: string;
+  forceFavorite?: boolean;
+}
+
 export interface UseItemsQueryResult {
-  routeMode: ItemsRouteMode;
   query: ItemsQueryState;
   data: ItemsResponse | null;
   loading: boolean;
   error: string | null;
   updateQuery: (patch: QueryPatch) => void;
-  setRouteMode: (routeMode: ItemsRouteMode) => void;
   resetQuery: () => void;
 }
 
-export function useItemsQuery(): UseItemsQueryResult {
-  const [routeMode, setRouteMode] = useState<ItemsRouteMode>(() =>
-    parseRouteMode(window.location.pathname)
-  );
+export function useItemsQuery(config: UseItemsQueryConfig = {}): UseItemsQueryResult {
+  const { basePath = "/", forceFavorite = false } = config;
+
   const [query, setQuery] = useState<ItemsQueryState>(() => {
     const parsedQuery = parseQueryState(window.location.search);
-    if (parseRouteMode(window.location.pathname) === "favorites") {
+    if (forceFavorite) {
       return {
         ...parsedQuery,
         favorite: true,
@@ -47,16 +46,9 @@ export function useItemsQuery(): UseItemsQueryResult {
   const queryString = useMemo(() => serializeQueryState(query), [query]);
 
   useEffect(() => {
-    if (routeMode === "favorites" && !query.favorite) {
-      setRouteMode("all");
-    }
-  }, [routeMode, query.favorite]);
-
-  useEffect(() => {
-    const path = routeModeToPath(routeMode);
-    const nextUrl = queryString ? `${path}?${queryString}` : path;
+    const nextUrl = queryString ? `${basePath}?${queryString}` : basePath;
     window.history.replaceState(null, "", nextUrl);
-  }, [queryString, routeMode]);
+  }, [basePath, queryString]);
 
   useEffect(() => {
     let canceled = false;
@@ -92,28 +84,31 @@ export function useItemsQuery(): UseItemsQueryResult {
   function updateQuery(patch: QueryPatch) {
     setQuery((prev) => {
       const nextPatch = typeof patch === "function" ? patch(prev) : patch;
-      return {
+      const nextQuery = {
         ...prev,
         ...nextPatch,
       };
+      if (forceFavorite) {
+        nextQuery.favorite = true;
+      }
+      return nextQuery;
     });
   }
 
   return {
-    routeMode,
     query,
     data,
     loading,
     error,
     updateQuery,
-    setRouteMode: (nextRouteMode) => {
-      setRouteMode(nextRouteMode);
-      setQuery((prev) => ({
-        ...prev,
-        favorite: nextRouteMode === "favorites" ? true : false,
-        page: 1,
-      }));
-    },
-    resetQuery: () => setQuery(DEFAULT_QUERY_STATE),
+    resetQuery: () =>
+      setQuery(
+        forceFavorite
+          ? {
+              ...DEFAULT_QUERY_STATE,
+              favorite: true,
+            }
+          : DEFAULT_QUERY_STATE
+      ),
   };
 }

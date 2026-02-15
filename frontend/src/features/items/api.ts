@@ -53,6 +53,47 @@ export interface ItemNoteResponse {
   note_last_modified: string | null;
 }
 
+export interface WatchedCategory {
+  id: number;
+  name: string;
+}
+
+export interface WatchlistResponse {
+  sellers: string[];
+  categories: WatchedCategory[];
+  main_category_options: string[];
+}
+
+export interface WatchlistCategorySuggestion {
+  id: string;
+  name: string;
+  path: string;
+}
+
+export interface WatchlistCategorySuggestionsResponse {
+  suggestions: WatchlistCategorySuggestion[];
+}
+
+export interface AnalyticsMetricSnapshot {
+  total_items: number;
+  active_items: number;
+  ending_soon_items: number;
+  new_last_7_days: number;
+  hidden_items: number;
+  favorite_items: number;
+}
+
+export interface AnalyticsRankingRow {
+  name: string;
+  count: number;
+}
+
+export interface AnalyticsResponse {
+  metrics: AnalyticsMetricSnapshot;
+  top_sellers: AnalyticsRankingRow[];
+  top_categories: AnalyticsRankingRow[];
+}
+
 export async function fetchItems(queryString: string): Promise<ItemsResponse> {
   const response = await fetch(`/api/v1/items${queryString ? `?${queryString}` : ""}`);
   if (!response.ok) {
@@ -125,4 +166,84 @@ export async function updateItemNote(
   }
 
   return (await response.json()) as ItemNoteResponse;
+}
+
+export async function fetchWatchlist(): Promise<WatchlistResponse> {
+  const response = await fetch("/api/v1/watchlist");
+  if (!response.ok) {
+    throw new Error(`watchlist fetch failed: ${response.status}`);
+  }
+  return (await response.json()) as WatchlistResponse;
+}
+
+export async function addWatchedSeller(sellerName: string): Promise<void> {
+  const response = await fetch("/api/v1/watchlist/sellers", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ seller_name: sellerName }),
+  });
+  if (!response.ok) {
+    throw new Error(`add seller failed: ${response.status}`);
+  }
+}
+
+export async function removeWatchedSeller(sellerName: string): Promise<void> {
+  const response = await fetch(
+    `/api/v1/watchlist/sellers/${encodeURIComponent(sellerName)}`,
+    { method: "DELETE" }
+  );
+  if (!response.ok) {
+    throw new Error(`remove seller failed: ${response.status}`);
+  }
+}
+
+export async function addWatchedCategory(input: {
+  categoryId?: number;
+  categoryName?: string;
+}): Promise<void> {
+  const payload: { category_id?: number; category_name?: string } = {};
+  if (input.categoryId !== undefined) {
+    payload.category_id = input.categoryId;
+  }
+  if (input.categoryName) {
+    payload.category_name = input.categoryName;
+  }
+
+  const response = await fetch("/api/v1/watchlist/categories", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    throw new Error(`add category failed: ${response.status}`);
+  }
+}
+
+export async function removeWatchedCategory(categoryId: number): Promise<void> {
+  const response = await fetch(`/api/v1/watchlist/categories/${categoryId}`, {
+    method: "DELETE",
+  });
+  if (!response.ok) {
+    throw new Error(`remove category failed: ${response.status}`);
+  }
+}
+
+export async function fetchWatchlistCategorySuggestions(
+  query: string
+): Promise<WatchlistCategorySuggestionsResponse> {
+  const response = await fetch(
+    `/api/v1/watchlist/category-suggestions?q=${encodeURIComponent(query)}`
+  );
+  if (!response.ok) {
+    throw new Error(`watchlist category suggestions failed: ${response.status}`);
+  }
+  return (await response.json()) as WatchlistCategorySuggestionsResponse;
+}
+
+export async function fetchAnalyticsSnapshot(): Promise<AnalyticsResponse> {
+  const response = await fetch("/api/v1/analytics");
+  if (!response.ok) {
+    throw new Error(`analytics fetch failed: ${response.status}`);
+  }
+  return (await response.json()) as AnalyticsResponse;
 }
