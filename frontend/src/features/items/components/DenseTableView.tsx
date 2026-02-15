@@ -55,11 +55,11 @@ export default function DenseTableView({
             items.map((item) => (
               <tr key={item.item_id} className="align-top">
                 {visible.has("image") && (
-                  <td className="px-3 py-3">
+                  <td className="w-[104px] min-w-[104px] px-3 py-3 sm:w-[132px] sm:min-w-[132px]">
                     <img
                       src={item.image_url}
                       alt={item.title}
-                      className="aspect-square h-20 w-20 rounded-lg object-cover sm:h-[108px] sm:w-[108px]"
+                      className="block aspect-square h-20 w-20 min-h-20 min-w-20 max-w-none rounded-lg object-cover sm:h-[108px] sm:w-[108px] sm:min-h-[108px] sm:min-w-[108px]"
                       loading="lazy"
                     />
                   </td>
