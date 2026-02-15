@@ -1,7 +1,10 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
+import { useState } from "react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, vi } from "vitest";
 
+import AppShell from "../../../components/layout/AppShell";
+import type { NavbarMenuAction } from "../../../components/layout/menu-actions";
 import ItemsPage from "../ItemsPage";
 import type { ItemRow } from "../api";
 
@@ -263,6 +266,25 @@ test("columns menu action opens the column controls dialog", async () => {
   expect(
     screen.queryByRole("dialog", { name: "Column controls" })
   ).not.toBeInTheDocument();
+});
+
+test("navbar menu item opens the column controls dialog end-to-end", async () => {
+  const user = userEvent.setup();
+
+  function Harness() {
+    const [menuActions, setMenuActions] = useState<NavbarMenuAction[]>([]);
+    return (
+      <AppShell activePath="/" menuActions={menuActions} sidebarEnabled={false}>
+        <ItemsPage onMenuActionsChange={setMenuActions} />
+      </AppShell>
+    );
+  }
+
+  render(<Harness />);
+
+  await user.click(screen.getByRole("button", { name: "Open navigation menu" }));
+  await user.click(screen.getByRole("button", { name: "Columns" }));
+  expect(screen.getByRole("dialog", { name: "Column controls" })).toBeInTheDocument();
 });
 
 test("seller and category labels add filters across table, hybrid, and card views", async () => {
