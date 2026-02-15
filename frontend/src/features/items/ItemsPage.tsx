@@ -29,6 +29,8 @@ type ItemPatch = {
   note_last_modified?: string | null;
 };
 
+type FilterField = "seller" | "category";
+
 interface ItemsPageProps {
   itemsQuery?: UseItemsQueryResult;
 }
@@ -183,6 +185,31 @@ export default function ItemsPage({ itemsQuery }: ItemsPageProps) {
     updateQuery({ view, page: 1 });
   }
 
+  function appendFilterValue(field: FilterField, value: string) {
+    const normalized = value.trim();
+    if (!normalized) {
+      return;
+    }
+
+    updateQuery((prev) => {
+      if (prev[field].includes(normalized)) {
+        return { page: 1 };
+      }
+      return {
+        [field]: [...prev[field], normalized],
+        page: 1,
+      };
+    });
+  }
+
+  function handleAddSellerFilter(item: ItemRow) {
+    appendFilterValue("seller", item.seller);
+  }
+
+  function handleAddCategoryFilter(item: ItemRow) {
+    appendFilterValue("category", item.category);
+  }
+
   return (
     <div>
       <ItemsToolbar
@@ -208,6 +235,8 @@ export default function ItemsPage({ itemsQuery }: ItemsPageProps) {
             visibleColumns={visibleColumns}
             onToggleFavorite={handleFavorite}
             onToggleHidden={handleHidden}
+            onAddSellerFilter={handleAddSellerFilter}
+            onAddCategoryFilter={handleAddCategoryFilter}
             onEditNote={setNoteEditorItem}
           />
         </>
@@ -218,6 +247,8 @@ export default function ItemsPage({ itemsQuery }: ItemsPageProps) {
           items={items}
           onToggleFavorite={handleFavorite}
           onToggleHidden={handleHidden}
+          onAddSellerFilter={handleAddSellerFilter}
+          onAddCategoryFilter={handleAddCategoryFilter}
           onEditNote={setNoteEditorItem}
         />
       )}
@@ -227,6 +258,8 @@ export default function ItemsPage({ itemsQuery }: ItemsPageProps) {
           items={items}
           onToggleFavorite={handleFavorite}
           onToggleHidden={handleHidden}
+          onAddSellerFilter={handleAddSellerFilter}
+          onAddCategoryFilter={handleAddCategoryFilter}
           onEditNote={setNoteEditorItem}
         />
       )}

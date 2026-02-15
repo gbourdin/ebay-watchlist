@@ -5,6 +5,8 @@ interface HybridListViewProps {
   items: ItemRow[];
   onToggleFavorite: (item: ItemRow) => void;
   onToggleHidden: (item: ItemRow) => void;
+  onAddSellerFilter: (item: ItemRow) => void;
+  onAddCategoryFilter: (item: ItemRow) => void;
   onEditNote: (item: ItemRow) => void;
 }
 
@@ -12,6 +14,8 @@ export default function HybridListView({
   items,
   onToggleFavorite,
   onToggleHidden,
+  onAddSellerFilter,
+  onAddCategoryFilter,
   onEditNote,
 }: HybridListViewProps) {
   return (
@@ -42,7 +46,23 @@ export default function HybridListView({
               {item.title}
             </a>
             <p className="text-sm text-slate-600">
-              {item.seller} · {item.category}
+              <button
+                type="button"
+                onClick={() => onAddSellerFilter(item)}
+                className="font-medium text-blue-700 hover:underline"
+                aria-label={`Filter by seller ${item.seller}`}
+              >
+                {item.seller}
+              </button>
+              {" · "}
+              <button
+                type="button"
+                onClick={() => onAddCategoryFilter(item)}
+                className="font-medium text-blue-700 hover:underline"
+                aria-label={`Filter by category ${item.category}`}
+              >
+                {item.category}
+              </button>
             </p>
             <p className="text-sm text-slate-600">
               Posted{" "}

@@ -5,6 +5,8 @@ interface CardGridViewProps {
   items: ItemRow[];
   onToggleFavorite: (item: ItemRow) => void;
   onToggleHidden: (item: ItemRow) => void;
+  onAddSellerFilter: (item: ItemRow) => void;
+  onAddCategoryFilter: (item: ItemRow) => void;
   onEditNote: (item: ItemRow) => void;
 }
 
@@ -12,6 +14,8 @@ export default function CardGridView({
   items,
   onToggleFavorite,
   onToggleHidden,
+  onAddSellerFilter,
+  onAddCategoryFilter,
   onEditNote,
 }: CardGridViewProps) {
   return (
@@ -45,7 +49,23 @@ export default function CardGridView({
               {item.price} {item.currency} · {item.bids} bids
             </p>
             <p className="text-sm text-slate-600">
-              {item.seller} · {item.category}
+              <button
+                type="button"
+                onClick={() => onAddSellerFilter(item)}
+                className="font-medium text-blue-700 hover:underline"
+                aria-label={`Filter by seller ${item.seller}`}
+              >
+                {item.seller}
+              </button>
+              {" · "}
+              <button
+                type="button"
+                onClick={() => onAddCategoryFilter(item)}
+                className="font-medium text-blue-700 hover:underline"
+                aria-label={`Filter by category ${item.category}`}
+              >
+                {item.category}
+              </button>
             </p>
             <p className="text-sm text-slate-500">
               Posted{" "}

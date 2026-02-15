@@ -229,3 +229,30 @@ test("dense table supports column toggles and saved presets", async () => {
   await user.selectOptions(presets, "custom:no-seller");
   expect(screen.queryByRole("columnheader", { name: "Seller" })).not.toBeInTheDocument();
 });
+
+test("seller and category labels add filters across table, hybrid, and card views", async () => {
+  const user = userEvent.setup();
+  const { rerender } = render(<ItemsPage />);
+
+  await user.click(screen.getByRole("button", { name: "Filter by seller alice" }));
+  expect(queryState.seller).toContain("alice");
+
+  await user.click(screen.getByRole("button", { name: "Filter by category Electric Guitars" }));
+  expect(queryState.category).toContain("Electric Guitars");
+
+  await user.click(screen.getByRole("button", { name: "Hybrid" }));
+  rerender(<ItemsPage />);
+
+  await user.click(screen.getByRole("button", { name: "Filter by seller alice" }));
+  await user.click(screen.getByRole("button", { name: "Filter by category Electric Guitars" }));
+  expect(queryState.seller).toContain("alice");
+  expect(queryState.category).toContain("Electric Guitars");
+
+  await user.click(screen.getByRole("button", { name: "Cards" }));
+  rerender(<ItemsPage />);
+
+  await user.click(screen.getByRole("button", { name: "Filter by seller alice" }));
+  await user.click(screen.getByRole("button", { name: "Filter by category Electric Guitars" }));
+  expect(queryState.seller).toContain("alice");
+  expect(queryState.category).toContain("Electric Guitars");
+});

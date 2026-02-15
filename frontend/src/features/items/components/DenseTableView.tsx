@@ -7,6 +7,8 @@ interface DenseTableViewProps {
   visibleColumns: DenseTableColumnKey[];
   onToggleFavorite: (item: ItemRow) => void;
   onToggleHidden: (item: ItemRow) => void;
+  onAddSellerFilter: (item: ItemRow) => void;
+  onAddCategoryFilter: (item: ItemRow) => void;
   onEditNote: (item: ItemRow) => void;
 }
 
@@ -15,6 +17,8 @@ export default function DenseTableView({
   visibleColumns,
   onToggleFavorite,
   onToggleHidden,
+  onAddSellerFilter,
+  onAddCategoryFilter,
   onEditNote,
 }: DenseTableViewProps) {
   const visible = new Set(visibleColumns);
@@ -74,8 +78,30 @@ export default function DenseTableView({
                   </td>
                 )}
                 {visible.has("bids") && <td className="px-3 py-3">{item.bids}</td>}
-                {visible.has("seller") && <td className="px-3 py-3">{item.seller}</td>}
-                {visible.has("category") && <td className="px-3 py-3">{item.category}</td>}
+                {visible.has("seller") && (
+                  <td className="px-3 py-3">
+                    <button
+                      type="button"
+                      onClick={() => onAddSellerFilter(item)}
+                      className="font-medium text-blue-700 hover:underline"
+                      aria-label={`Filter by seller ${item.seller}`}
+                    >
+                      {item.seller}
+                    </button>
+                  </td>
+                )}
+                {visible.has("category") && (
+                  <td className="px-3 py-3">
+                    <button
+                      type="button"
+                      onClick={() => onAddCategoryFilter(item)}
+                      className="font-medium text-blue-700 hover:underline"
+                      aria-label={`Filter by category ${item.category}`}
+                    >
+                      {item.category}
+                    </button>
+                  </td>
+                )}
                 {visible.has("posted") && (
                   <td className="px-3 py-3 whitespace-nowrap">
                     <time
