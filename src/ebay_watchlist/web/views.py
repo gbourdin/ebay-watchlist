@@ -25,7 +25,7 @@ def _render_spa_entry() -> object:
             "<!doctype html>"
             "<html><head><title>Watched Listings</title></head>"
             "<body>"
-            "<div id='root'></div>"
+            '<div id="root"></div>'
             "<p>SPA assets are not built yet. Run `npm --prefix frontend run build`.</p>"
             "</body></html>"
         )
