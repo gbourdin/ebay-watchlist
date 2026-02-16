@@ -32,6 +32,14 @@
 - Add/update tests for note editing flows (`/api/v1/items/<id>/note`, modal save/cancel UX).
 - Keep relative time rendering (`Posted`, `Ends`) in frontend utilities and verify exact timestamp hover tooltips.
 
+### Test Quality Learnings
+- Assert observable behavior, not internals. Prefer user-visible/API-visible outcomes over “function X was called”.
+- Do not test implementation details like “uses `humanize.naturaltime`” unless the dependency is an external boundary.
+- Mock/stub only true boundaries or nondeterminism: network calls, external APIs, env vars, time/sleep, process exec, browser globals.
+- Keep time-based tests deterministic: use `freezegun` in backend tests and fixed `now` inputs in frontend date utilities.
+- Prefer integration-style tests across command/API/UI flows; use unit-level mocking only when unavoidable.
+- If a mock is needed, still assert the final behavior/output (response body, rendered state, persisted data), not just call counts.
+
 ## Commit & Pull Request Guidelines
 - Use focused commits with conventional prefixes (`feat:`, `fix:`, `chore:`) or scoped variants (`feat(api): ...`).
 - Keep one logical change per commit and include tests with behavior changes.

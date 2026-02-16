@@ -1,22 +1,16 @@
 from datetime import datetime
 
+from freezegun import freeze_time
 from ebay_watchlist.cli import display_utils
 
 
-def test_format_naturaltime_uses_humanize_for_datetime(monkeypatch):
-    captured = {"value": None}
-
-    def fake_naturaltime(value):
-        captured["value"] = value
-        return "a moment ago"
-
-    monkeypatch.setattr(display_utils.humanize, "naturaltime", fake_naturaltime)
-    timestamp = datetime(2025, 1, 1, 12, 0, 0)
+@freeze_time("2026-02-16 12:00:00")
+def test_format_naturaltime_returns_human_readable_text_for_datetime():
+    timestamp = datetime(2026, 2, 16, 11, 55, 0)
 
     result = display_utils.format_naturaltime(timestamp)
 
-    assert result == "a moment ago"
-    assert captured["value"] == timestamp
+    assert result == "5 minutes ago"
 
 
 def test_format_naturaltime_returns_dash_for_non_datetime():

@@ -5,6 +5,7 @@ import { beforeEach, expect, test, vi } from "vitest";
 
 import AppShell from "../../../components/layout/AppShell";
 import ThemeProvider from "../../../theme/ThemeProvider";
+import { fetchCategorySuggestions } from "../api";
 import { fetchSellerSuggestions } from "../api";
 import { parseQueryState } from "../query-state";
 import type { ItemsQueryState } from "../query-state";
@@ -21,6 +22,7 @@ vi.mock("../api", async (importOriginal) => {
 });
 
 const mockedFetchSellerSuggestions = vi.mocked(fetchSellerSuggestions);
+const mockedFetchCategorySuggestions = vi.mocked(fetchCategorySuggestions);
 
 beforeEach(() => {
   window.localStorage.clear();
@@ -36,6 +38,8 @@ beforeEach(() => {
   }));
   mockedFetchSellerSuggestions.mockReset();
   mockedFetchSellerSuggestions.mockResolvedValue({ items: [] });
+  mockedFetchCategorySuggestions.mockReset();
+  mockedFetchCategorySuggestions.mockResolvedValue({ items: [] });
 });
 
 function createItemsQueryMock(): UseItemsQueryResult {
@@ -165,6 +169,76 @@ test("seller input auto-adds on blur when value matches suggestion", async () =>
   await user.tab();
 
   await waitFor(() => expect(harness.getQuery()?.seller).toContain("alice_shop"));
+});
+
+test("main category supports exact-match add and removable tag pills", async () => {
+  const user = userEvent.setup();
+  const harness = renderFiltersSidebarHarness();
+
+  await user.type(screen.getByLabelText("Main Categories"), "musical instruments");
+  await user.tab();
+  expect(harness.getQuery()?.main_category).toEqual(["Musical Instruments"]);
+
+  await user.click(screen.getByRole("button", { name: "Musical Instruments ×" }));
+  expect(harness.getQuery()?.main_category).toEqual([]);
+});
+
+test("category input uses suggestions on blur and supports pill removal", async () => {
+  mockedFetchCategorySuggestions.mockResolvedValue({
+    items: [{ value: "Acoustic Guitars", label: "Acoustic Guitars" }],
+  });
+
+  const user = userEvent.setup();
+  const harness = renderFiltersSidebarHarness();
+
+  await user.type(screen.getByLabelText("Categories"), "Acoustic Guitars");
+  await user.tab();
+
+  await waitFor(() => expect(harness.getQuery()?.category).toContain("Acoustic Guitars"));
+  await user.click(screen.getByRole("button", { name: "Acoustic Guitars ×" }));
+  expect(harness.getQuery()?.category).toEqual([]);
+});
+
+test("category input supports enter-add with trimmed values and avoids duplicates", async () => {
+  const user = userEvent.setup();
+  const harness = renderFiltersSidebarHarness();
+
+  await user.type(screen.getByLabelText("Categories"), "  Electric Guitars  {enter}");
+  expect(harness.getQuery()?.category).toEqual(["Electric Guitars"]);
+
+  await user.type(screen.getByLabelText("Categories"), "Electric Guitars{enter}");
+  expect(harness.getQuery()?.category).toEqual(["Electric Guitars"]);
+});
+
+test("checkbox toggles update hidden and favorites filters immediately", async () => {
+  const user = userEvent.setup();
+  const harness = renderFiltersSidebarHarness();
+
+  await user.click(screen.getByLabelText("Show hidden items"));
+  await user.click(screen.getByLabelText("Favorites only"));
+
+  expect(harness.getQuery()?.show_hidden).toBe(true);
+  expect(harness.getQuery()?.favorite).toBe(true);
+});
+
+test("fetches category suggestions using selected main categories", async () => {
+  mockedFetchCategorySuggestions.mockResolvedValue({
+    items: [{ value: "Clarinets", label: "Clarinet" }],
+  });
+
+  const user = userEvent.setup();
+  const harness = renderFiltersSidebarHarness();
+
+  await user.type(screen.getByLabelText("Main Categories"), "Musical Instruments");
+  await user.tab();
+  expect(harness.getQuery()?.main_category).toEqual(["Musical Instruments"]);
+
+  await user.type(screen.getByLabelText("Categories"), "Cla");
+  await waitFor(() =>
+    expect(mockedFetchCategorySuggestions).toHaveBeenLastCalledWith("Cla", [
+      "Musical Instruments",
+    ])
+  );
 });
 
 test("sidebar does not render routes, saved views, or watched searches controls", () => {
