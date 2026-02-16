@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, test, vi } from "vitest";
 
 import AppShell from "../../../components/layout/AppShell";
+import ThemeProvider from "../../../theme/ThemeProvider";
 import { fetchSellerSuggestions } from "../api";
 import { parseQueryState } from "../query-state";
 import type { ItemsQueryState } from "../query-state";
@@ -23,6 +24,16 @@ const mockedFetchSellerSuggestions = vi.mocked(fetchSellerSuggestions);
 
 beforeEach(() => {
   window.localStorage.clear();
+  window.matchMedia = vi.fn().mockImplementation(() => ({
+    matches: false,
+    media: "(prefers-color-scheme: dark)",
+    onchange: null,
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    addListener: () => {},
+    removeListener: () => {},
+    dispatchEvent: () => true,
+  }));
   mockedFetchSellerSuggestions.mockReset();
   mockedFetchSellerSuggestions.mockResolvedValue({ items: [] });
 });
@@ -126,9 +137,11 @@ test("mobile layout starts with results visible and filters drawer closed", () =
   const itemsQuery = createItemsQueryMock();
 
   render(
-    <AppShell sidebar={<FiltersSidebar itemsQuery={itemsQuery} />}>
-      <div data-testid="table-content">Table content</div>
-    </AppShell>
+    <ThemeProvider>
+      <AppShell sidebar={<FiltersSidebar itemsQuery={itemsQuery} />}>
+        <div data-testid="table-content">Table content</div>
+      </AppShell>
+    </ThemeProvider>
   );
 
   expect(screen.getByTestId("results-main")).toBeInTheDocument();
@@ -161,4 +174,15 @@ test("sidebar does not render routes, saved views, or watched searches controls"
   expect(screen.queryByText("Route")).not.toBeInTheDocument();
   expect(screen.queryByText("Saved Views")).not.toBeInTheDocument();
   expect(screen.queryByText("Watched Searches")).not.toBeInTheDocument();
+});
+
+test("sidebar internals keep dark styling regardless of global theme", () => {
+  const itemsQuery = createItemsQueryMock();
+  render(<FiltersSidebar itemsQuery={itemsQuery} />);
+
+  const sellersLabel = screen.getByText("Sellers");
+  const sellersInput = screen.getByLabelText("Sellers");
+
+  expect(sellersLabel).toHaveClass("text-slate-300");
+  expect(sellersInput).toHaveClass("border-slate-700", "bg-slate-900", "text-slate-100");
 });

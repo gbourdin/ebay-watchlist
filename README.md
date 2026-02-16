@@ -50,6 +50,10 @@ Other useful CLI commands:
 
 ## UI Highlights (Phase 1 SPA)
 - Full-width pinned navbar and collapsible left filter sidebar.
+- Manual light/dark mode toggle in navbar with sun/moon icons.
+- Default theme follows device `prefers-color-scheme` when no override is stored.
+- User override is only persisted when it differs from system theme (`ebay-watchlist.theme` key).
+- If selected mode matches system mode again, stored preference is removed automatically.
 - Live filtering with URL query-state sync and no full page reloads.
 - Default dense table triage view with large square thumbnails and eBay-linked titles.
 - `Posted` and `Ends` columns are both present in dense view for fast recency triage.

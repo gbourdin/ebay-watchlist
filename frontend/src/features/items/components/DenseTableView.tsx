@@ -29,9 +29,12 @@ export default function DenseTableView({
   const colSpan = Math.max(visibleColumns.length, 1);
 
   return (
-    <div data-testid="view-table" className="overflow-x-auto rounded-xl border border-slate-200">
-      <table className="min-w-full divide-y divide-slate-200 text-left text-sm">
-        <thead className="bg-slate-100 text-xs font-semibold uppercase tracking-wide text-slate-700">
+    <div
+      data-testid="view-table"
+      className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700"
+    >
+      <table className="min-w-full divide-y divide-slate-200 text-left text-sm dark:divide-slate-700">
+        <thead className="bg-slate-100 text-xs font-semibold uppercase tracking-wide text-slate-700 dark:bg-slate-800 dark:text-slate-200">
           <tr>
             {visible.has("image") && <th className="px-3 py-3">Image</th>}
             {visible.has("title") && <th className="px-3 py-3">Title</th>}
@@ -44,10 +47,13 @@ export default function DenseTableView({
             {visible.has("actions") && <th className="px-3 py-3">Actions</th>}
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-200 bg-white text-slate-800">
+        <tbody className="divide-y divide-slate-200 bg-white text-slate-800 dark:divide-slate-700 dark:bg-slate-900 dark:text-slate-100">
           {items.length === 0 ? (
             <tr>
-              <td className="px-3 py-10 text-center text-slate-500" colSpan={colSpan}>
+              <td
+                className="px-3 py-10 text-center text-slate-500 dark:text-slate-400"
+                colSpan={colSpan}
+              >
                 No items found.
               </td>
             </tr>
@@ -67,7 +73,7 @@ export default function DenseTableView({
                 {visible.has("title") && (
                   <td className="px-3 py-3">
                     <a
-                      className="font-semibold text-blue-700 hover:underline"
+                      className="font-semibold text-blue-700 hover:underline dark:text-blue-300"
                       href={item.web_url}
                       target="_blank"
                       rel="noreferrer"
@@ -87,7 +93,7 @@ export default function DenseTableView({
                     <button
                       type="button"
                       onClick={() => onAddSellerFilter(item)}
-                      className="font-medium text-blue-700 hover:underline"
+                      className="font-medium text-blue-700 hover:underline dark:text-blue-300"
                       aria-label={`Filter by seller ${item.seller}`}
                     >
                       {item.seller}
@@ -99,7 +105,7 @@ export default function DenseTableView({
                     <button
                       type="button"
                       onClick={() => onAddCategoryFilter(item)}
-                      className="font-medium text-blue-700 hover:underline"
+                      className="font-medium text-blue-700 hover:underline dark:text-blue-300"
                       aria-label={`Filter by category ${item.category}`}
                     >
                       {item.category}
@@ -134,7 +140,7 @@ export default function DenseTableView({
                       type="button"
                       onClick={() => onRefreshItem(item)}
                       disabled={isRefreshingItem(item.item_id)}
-                      className="inline-flex w-full justify-center rounded-md border border-emerald-400 px-2 py-1 text-xs font-semibold text-emerald-800 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-60"
+                      className="inline-flex w-full justify-center rounded-md border border-emerald-400 px-2 py-1 text-xs font-semibold text-emerald-800 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-emerald-500 dark:text-emerald-300 dark:hover:bg-emerald-900/30"
                     >
                       {isRefreshingItem(item.item_id) ? "Refreshing..." : "Refresh"}
                     </button>
@@ -144,8 +150,8 @@ export default function DenseTableView({
                       aria-pressed={item.favorite}
                       className={`inline-flex w-full justify-center rounded-md border px-2 py-1 text-xs font-semibold transition ${
                         item.favorite
-                          ? "border-amber-500 bg-amber-100 text-amber-900"
-                          : "border-amber-400 text-amber-700 hover:bg-amber-100"
+                          ? "border-amber-500 bg-amber-100 text-amber-900 dark:bg-amber-900/35 dark:text-amber-200"
+                          : "border-amber-400 text-amber-700 hover:bg-amber-100 dark:border-amber-500 dark:text-amber-300 dark:hover:bg-amber-900/35"
                       }`}
                     >
                       Fav
@@ -156,8 +162,8 @@ export default function DenseTableView({
                       aria-pressed={item.hidden}
                       className={`inline-flex w-full justify-center rounded-md border px-2 py-1 text-xs font-semibold transition ${
                         item.hidden
-                          ? "border-slate-900 bg-slate-900 text-white"
-                          : "border-slate-400 text-slate-700 hover:bg-slate-100"
+                          ? "border-slate-900 bg-slate-900 text-white dark:border-slate-200 dark:bg-slate-100 dark:text-slate-900"
+                          : "border-slate-400 text-slate-700 hover:bg-slate-100 dark:border-slate-500 dark:text-slate-200 dark:hover:bg-slate-800"
                       }`}
                     >
                       Hide
@@ -167,8 +173,8 @@ export default function DenseTableView({
                       onClick={() => onEditNote(item)}
                       className={`inline-flex w-full justify-center rounded-md border px-2 py-1 text-xs font-semibold transition ${
                         item.note_text
-                          ? "border-blue-500 bg-blue-100 text-blue-900"
-                          : "border-blue-300 text-blue-700 hover:bg-blue-100"
+                          ? "border-blue-500 bg-blue-100 text-blue-900 dark:bg-blue-900/40 dark:text-blue-200"
+                          : "border-blue-300 text-blue-700 hover:bg-blue-100 dark:border-blue-500 dark:text-blue-300 dark:hover:bg-blue-900/30"
                       }`}
                     >
                       Note

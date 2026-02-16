@@ -43,4 +43,6 @@ test("analytics page renders snapshot metrics and rankings", async () => {
   expect(screen.getByText("Top Sellers")).toBeInTheDocument();
   expect(screen.getByText("alice")).toBeInTheDocument();
   expect(screen.getByText("Electric Guitars")).toBeInTheDocument();
+  const metricCard = screen.getByText("Total Items").closest("article");
+  expect(metricCard).toHaveClass("dark:bg-slate-900");
 });

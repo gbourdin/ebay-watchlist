@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 
 import type { AppRoutePath } from "../../app/routes";
 import type { NavbarMenuAction } from "./menu-actions";
+import ThemeToggle from "./ThemeToggle";
 
 interface NavbarProps {
   onOpenSidebar?: () => void;
@@ -70,7 +71,10 @@ export default function Navbar({
   }
 
   return (
-    <nav className="fixed inset-x-0 top-0 z-40 border-b border-slate-800 bg-slate-950/95 text-slate-100 backdrop-blur">
+    <nav
+      data-testid="navbar-root"
+      className="fixed inset-x-0 top-0 z-40 border-b border-slate-800 bg-slate-950/95 text-slate-100 backdrop-blur dark:border-slate-800 dark:bg-slate-950/95 dark:text-slate-100"
+    >
       <div className="flex h-16 w-full">
         <div
           data-testid="navbar-brand-panel"
@@ -116,6 +120,8 @@ export default function Navbar({
               </button>
             )}
 
+            <ThemeToggle />
+
             <div ref={menuRef} className="relative">
               <button
                 type="button"
@@ -151,7 +157,10 @@ export default function Navbar({
                       );
                     })}
                     {menuActions.length > 0 && (
-                      <li className="my-1 border-t border-slate-700" role="separator" />
+                      <li
+                        className="my-1 border-t border-slate-700"
+                        role="separator"
+                      />
                     )}
                     {menuActions.map((action) => (
                       <li key={action.id}>

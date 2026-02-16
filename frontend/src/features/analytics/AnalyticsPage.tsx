@@ -15,9 +15,11 @@ function MetricCard({
   value: number;
 }) {
   return (
-    <article className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">{label}</p>
-      <p className="mt-2 text-3xl font-semibold text-slate-900">
+    <article className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
+      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
+        {label}
+      </p>
+      <p className="mt-2 text-3xl font-semibold text-slate-900 dark:text-slate-100">
         {new Intl.NumberFormat().format(value)}
       </p>
     </article>
@@ -32,26 +34,31 @@ function RankingTable({
   rows: AnalyticsRankingRow[];
 }) {
   return (
-    <article className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-      <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
+    <article className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
+      <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">{title}</h2>
       <div className="mt-3 overflow-x-auto">
         <table className="min-w-full border-collapse text-sm">
           <thead>
-            <tr className="border-b border-slate-200 text-left text-slate-600">
+            <tr className="border-b border-slate-200 text-left text-slate-600 dark:border-slate-700 dark:text-slate-300">
               <th className="px-1 py-2 font-semibold">Name</th>
               <th className="px-1 py-2 text-right font-semibold">Items</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((row) => (
-              <tr key={row.name} className="border-b border-slate-100 last:border-b-0">
-                <td className="px-1 py-2 text-slate-800">{row.name}</td>
-                <td className="px-1 py-2 text-right font-medium text-slate-800">{row.count}</td>
+              <tr
+                key={row.name}
+                className="border-b border-slate-100 last:border-b-0 dark:border-slate-800"
+              >
+                <td className="px-1 py-2 text-slate-800 dark:text-slate-100">{row.name}</td>
+                <td className="px-1 py-2 text-right font-medium text-slate-800 dark:text-slate-100">
+                  {row.count}
+                </td>
               </tr>
             ))}
             {rows.length === 0 && (
               <tr>
-                <td colSpan={2} className="px-1 py-3 text-slate-500">
+                <td colSpan={2} className="px-1 py-3 text-slate-500 dark:text-slate-400">
                   No ranking data available.
                 </td>
               </tr>
@@ -114,14 +121,14 @@ export default function AnalyticsPage() {
   return (
     <section className="space-y-6">
       <header>
-        <h1 className="text-2xl font-semibold text-slate-900">Analytics</h1>
-        <p className="mt-1 text-sm text-slate-600">
+        <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">Analytics</h1>
+        <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
           Snapshot of auction volume, active inventory, and top entities.
         </p>
       </header>
 
-      {loading && <p className="text-sm text-slate-500">Loading analytics...</p>}
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {loading && <p className="text-sm text-slate-500 dark:text-slate-400">Loading analytics...</p>}
+      {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
 
       {snapshot && (
         <>

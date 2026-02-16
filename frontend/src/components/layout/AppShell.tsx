@@ -97,7 +97,10 @@ export default function AppShell({
   const hasSidebar = sidebarEnabled;
 
   return (
-    <div className="min-h-screen bg-slate-100">
+    <div
+      data-testid="app-shell"
+      className="min-h-screen bg-slate-100 text-slate-900 dark:bg-slate-950 dark:text-slate-100"
+    >
       <Navbar
         activePath={activePath}
         onNavigate={onNavigate}
@@ -111,7 +114,7 @@ export default function AppShell({
             <aside
               data-testid="desktop-sidebar"
               data-open={desktopSidebarOpen ? "true" : "false"}
-              className={`fixed bottom-0 left-0 top-16 z-30 hidden shrink-0 border-r border-slate-800 bg-[#040823] transition-[width] duration-200 lg:block ${
+              className={`fixed bottom-0 left-0 top-16 z-30 hidden shrink-0 border-r border-slate-800 bg-[#040823] transition-[width] duration-200 dark:border-slate-800 dark:bg-[#040823] lg:block ${
                 desktopSidebarOpen ? "w-[320px]" : "w-[72px]"
               }`}
             >
@@ -148,7 +151,9 @@ export default function AppShell({
                         icon={
                           <span
                             className={`text-base leading-none ${
-                              railActions.favoritesOnly ? "text-amber-300" : "text-slate-300"
+                              railActions.favoritesOnly
+                                ? "text-amber-300"
+                                : "text-slate-300"
                             }`}
                           >
                             {railActions.favoritesOnly ? "★" : "☆"}
@@ -164,7 +169,11 @@ export default function AppShell({
                         onClick={railActions.onToggleShowHidden}
                         icon={
                           <span
-                            className={railActions.showHidden ? "text-sky-300" : "text-slate-300"}
+                            className={
+                              railActions.showHidden
+                                ? "text-sky-300"
+                                : "text-slate-300"
+                            }
                           >
                             <EyeIcon closed={!railActions.showHidden} />
                           </span>
@@ -185,12 +194,14 @@ export default function AppShell({
             <main
               data-testid="results-main"
               data-sidebar-open={hasSidebar && desktopSidebarOpen ? "true" : "false"}
-              className="min-h-full min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:p-6"
+              className="min-h-full min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none lg:p-6"
             >
               {children ?? (
                 <>
-                  <h1 className="text-lg font-semibold text-slate-900">Latest Items</h1>
-                  <p className="mt-2 text-sm text-slate-600">
+                  <h1 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                    Latest Items
+                  </h1>
+                  <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
                     Table and card views are coming next.
                   </p>
                 </>
@@ -210,7 +221,7 @@ export default function AppShell({
             role="dialog"
             aria-label="Filters"
             onClick={(event) => event.stopPropagation()}
-            className="absolute bottom-3 left-3 top-[4.75rem] w-[min(88vw,360px)] overflow-hidden rounded-2xl border border-slate-700 bg-[#040823] shadow-2xl"
+            className="absolute bottom-3 left-3 top-[4.75rem] w-[min(88vw,360px)] overflow-hidden rounded-2xl border border-slate-800 bg-[#040823] shadow-2xl dark:border-slate-800 dark:bg-[#040823]"
           >
             <div className="h-full overflow-y-auto">
               <Sidebar

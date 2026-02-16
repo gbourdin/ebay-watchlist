@@ -40,8 +40,11 @@ export default function ItemsToolbar({
   onViewChange,
 }: ItemsToolbarProps) {
   return (
-    <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
-      <p className="text-sm font-medium text-slate-700">{total} items</p>
+    <div
+      data-testid="items-toolbar"
+      className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+    >
+      <p className="text-sm font-medium text-slate-700 dark:text-slate-200">{total} items</p>
 
       <div className="flex items-center gap-2">
         <label className="sr-only" htmlFor="sort-select">
@@ -51,7 +54,7 @@ export default function ItemsToolbar({
           id="sort-select"
           value={sort}
           onChange={(event) => onSortChange(event.target.value as ItemsSort)}
-          className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700"
+          className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
         >
           {sortOptions.map((option) => (
             <option key={option.value} value={option.value}>
@@ -60,7 +63,7 @@ export default function ItemsToolbar({
           ))}
         </select>
 
-        <div className="inline-flex rounded-lg border border-slate-300 bg-white p-1 sm:hidden">
+        <div className="inline-flex rounded-lg border border-slate-300 bg-white p-1 dark:border-slate-600 dark:bg-slate-800 sm:hidden">
           {viewOptions.map((option) => (
             <button
               key={option.value}
@@ -69,8 +72,8 @@ export default function ItemsToolbar({
               onClick={() => onViewChange(option.value)}
               className={`inline-flex h-8 w-8 items-center justify-center rounded-md text-base font-semibold transition ${
                 view === option.value
-                  ? "bg-slate-900 text-white"
-                  : "text-slate-700 hover:bg-slate-100"
+                  ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
+                  : "text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-700"
               }`}
             >
               <span aria-hidden="true">{viewIcon(option.value)}</span>
@@ -78,7 +81,7 @@ export default function ItemsToolbar({
           ))}
         </div>
 
-        <div className="hidden rounded-lg border border-slate-300 bg-white p-1 sm:inline-flex">
+        <div className="hidden rounded-lg border border-slate-300 bg-white p-1 dark:border-slate-600 dark:bg-slate-800 sm:inline-flex">
           {viewOptions.map((option) => (
             <button
               key={option.value}
@@ -86,8 +89,8 @@ export default function ItemsToolbar({
               onClick={() => onViewChange(option.value)}
               className={`rounded-md px-3 py-1 text-sm font-medium transition ${
                 view === option.value
-                  ? "bg-slate-900 text-white"
-                  : "text-slate-700 hover:bg-slate-100"
+                  ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
+                  : "text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-700"
               }`}
             >
               {option.label}

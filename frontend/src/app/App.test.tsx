@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { vi } from "vitest";
 
+import ThemeProvider from "../theme/ThemeProvider";
 import App from "./App";
 
 vi.mock("../features/items/ItemsPage", () => ({
@@ -34,7 +35,22 @@ vi.mock("../features/items/useItemsQuery", () => ({
 }));
 
 test("renders app shell landmarks", () => {
-  render(<App />);
+  window.matchMedia = vi.fn().mockImplementation(() => ({
+    matches: false,
+    media: "(prefers-color-scheme: dark)",
+    onchange: null,
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    addListener: () => {},
+    removeListener: () => {},
+    dispatchEvent: () => true,
+  }));
+
+  render(
+    <ThemeProvider>
+      <App />
+    </ThemeProvider>
+  );
 
   expect(screen.getByRole("navigation")).toBeInTheDocument();
   expect(screen.getByTestId("desktop-sidebar")).toBeInTheDocument();
