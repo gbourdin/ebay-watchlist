@@ -44,7 +44,7 @@ describe("ThemeToggle", () => {
     await user.click(toggle);
 
     expect(toggle).toHaveAttribute("aria-checked", "true");
-    expect(screen.getByTestId("theme-thumb")).toHaveClass("translate-x-7");
+    expect(screen.getByTestId("theme-thumb")).toHaveClass("translate-x-9");
     expect(screen.getByTestId("theme-thumb-icon-moon")).toBeInTheDocument();
     expect(document.documentElement.classList.contains("dark")).toBe(true);
   });

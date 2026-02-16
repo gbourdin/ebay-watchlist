@@ -49,7 +49,7 @@ export default function ThemeToggle() {
       aria-checked={isDark}
       title={isDark ? "Switch to light mode" : "Switch to dark mode"}
       onClick={toggleTheme}
-      className="relative inline-flex h-8 w-14 items-center rounded-full border border-slate-500 bg-slate-900/70 p-0.5 text-slate-100 transition hover:bg-slate-800"
+      className="relative inline-flex h-8 w-16 items-center rounded-full border border-slate-500 bg-slate-900/70 p-0.5 text-slate-100 transition hover:bg-slate-800"
     >
       <span className="pointer-events-none absolute inset-0 flex items-center justify-between px-2 text-slate-400">
         <SunIcon />
@@ -59,7 +59,7 @@ export default function ThemeToggle() {
         data-testid="theme-thumb"
         className={`relative z-10 inline-flex h-6 w-6 items-center justify-center rounded-full shadow-sm transition-transform ${
           isDark
-            ? "translate-x-7 bg-slate-100 text-slate-900"
+            ? "translate-x-9 bg-slate-100 text-slate-900"
             : "translate-x-0 bg-amber-300 text-amber-900"
         }`}
       >
