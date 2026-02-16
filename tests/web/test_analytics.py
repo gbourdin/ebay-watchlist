@@ -1,5 +1,7 @@
 from datetime import datetime, timedelta
 
+from freezegun import freeze_time
+
 from ebay_watchlist.db.models import Item
 from ebay_watchlist.db.repositories import ItemRepository
 from ebay_watchlist.web.app import create_app
@@ -66,8 +68,9 @@ def test_analytics_api_returns_empty_snapshot(temp_db):
     assert payload["top_categories"] == []
 
 
+@freeze_time("2026-02-16 12:00:00")
 def test_analytics_api_shows_metrics_and_rankings(temp_db):
-    now = datetime.now().replace(microsecond=0)
+    now = datetime(2026, 2, 16, 12, 0, 0)
     insert_item(
         item_id="a1",
         title="Guitar A",

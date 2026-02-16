@@ -1,5 +1,7 @@
 from datetime import datetime, timedelta
 
+from freezegun import freeze_time
+
 from ebay_watchlist.db.models import Item
 from ebay_watchlist.db.repositories import ItemRepository
 from ebay_watchlist.web.app import create_app
@@ -171,8 +173,9 @@ def test_items_api_applies_filters_sort_and_pagination(temp_db):
     assert [row["item_id"] for row in payload["items"]] == ["3"]
 
 
+@freeze_time("2026-02-16 12:00:00")
 def test_items_api_ending_soon_active_excludes_ended_items(temp_db):
-    now = datetime.now().replace(microsecond=0)
+    now = datetime(2026, 2, 16, 12, 0, 0)
     insert_item(
         item_id="ended",
         title="Ended Auction",
