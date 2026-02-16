@@ -217,6 +217,29 @@ test("dense table images keep square shape on mobile", () => {
   expect(itemImage).toHaveClass("max-w-none");
 });
 
+test("uses placeholder image when source is missing in all views", async () => {
+  const user = userEvent.setup();
+  rows = [{ ...sampleItem, image_url: "" }];
+  const { rerender } = render(<ItemsPage />);
+
+  const assertPlaceholder = () => {
+    expect(screen.getByRole("img", { name: "Vintage Telecaster" })).toHaveAttribute(
+      "src",
+      expect.stringContaining("data:image/svg+xml")
+    );
+  };
+
+  assertPlaceholder();
+
+  await user.click(screen.getByRole("button", { name: "Hybrid" }));
+  rerender(<ItemsPage />);
+  assertPlaceholder();
+
+  await user.click(screen.getByRole("button", { name: "Cards" }));
+  rerender(<ItemsPage />);
+  assertPlaceholder();
+});
+
 test("view switcher provides compact icon controls on mobile", () => {
   render(<ItemsPage />);
 

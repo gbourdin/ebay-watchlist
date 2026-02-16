@@ -1,6 +1,7 @@
 import type { ItemRow } from "../api";
 import { formatExactDateTime, humanizeDateTime } from "../relative-time";
 import type { DenseTableColumnKey } from "../table-columns";
+import { handleItemImageError, resolveItemImageSrc } from "./item-image";
 
 interface DenseTableViewProps {
   items: ItemRow[];
@@ -63,8 +64,9 @@ export default function DenseTableView({
                 {visible.has("image") && (
                   <td className="w-[104px] min-w-[104px] px-3 py-3 sm:w-[132px] sm:min-w-[132px]">
                     <img
-                      src={item.image_url}
+                      src={resolveItemImageSrc(item.image_url)}
                       alt={item.title}
+                      onError={handleItemImageError}
                       className="block aspect-square h-20 w-20 min-h-20 min-w-20 max-w-none rounded-lg object-cover sm:h-[108px] sm:w-[108px] sm:min-h-[108px] sm:min-w-[108px]"
                       loading="lazy"
                     />
