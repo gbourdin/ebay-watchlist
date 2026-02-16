@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from ebay_watchlist.web import filters
 
@@ -7,15 +7,12 @@ def test_humanize_datetime_returns_empty_string_for_none():
     assert filters.humanize_datetime(None) == ""
 
 
-def test_humanize_datetime_uses_humanize_library(monkeypatch):
-    seen: dict[str, datetime] = {}
+def test_humanize_datetime_returns_human_readable_text_for_datetime():
+    timestamp = datetime.now() - timedelta(minutes=5)
 
-    def fake_naturaltime(value: datetime) -> str:
-        seen["value"] = value
-        return "just now"
+    result = filters.humanize_datetime(timestamp)
 
-    monkeypatch.setattr(filters.humanize, "naturaltime", fake_naturaltime)
-    timestamp = datetime(2026, 2, 16, 20, 0, 0)
-
-    assert filters.humanize_datetime(timestamp) == "just now"
-    assert seen["value"] == timestamp
+    assert isinstance(result, str)
+    assert result != ""
+    assert result != "-"
+    assert "ago" in result
