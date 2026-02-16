@@ -16,6 +16,7 @@
 - `uv run ebay-watchlist run-flask --host 127.0.0.1 --port 5001 --debug`: run API server.
 - `npm --prefix frontend run dev`: run SPA on `:5173`.
 - `docker compose up api web`: run split runtime with shared Docker image.
+- `docker build .`: mandatory before pushing any branch that includes code changes, to verify the image build still works.
 
 ## Coding Style & Naming Conventions
 - Python: 4-space indentation, type hints on new code, `snake_case` for funcs/modules, `PascalCase` for classes.
