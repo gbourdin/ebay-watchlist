@@ -37,11 +37,15 @@ describe("ThemeToggle", () => {
 
     const toggle = screen.getByRole("switch", { name: "Toggle color theme" });
     expect(toggle).toHaveAttribute("aria-checked", "false");
-    expect(screen.getByTestId("theme-icon-sun")).toBeInTheDocument();
-    expect(screen.getByTestId("theme-icon-moon")).toBeInTheDocument();
+    expect(toggle).toHaveClass("rounded-full");
+    expect(screen.getByTestId("theme-thumb")).toHaveClass("translate-x-0");
+    expect(screen.getByTestId("theme-thumb-icon-sun")).toBeInTheDocument();
 
     await user.click(toggle);
+
     expect(toggle).toHaveAttribute("aria-checked", "true");
+    expect(screen.getByTestId("theme-thumb")).toHaveClass("translate-x-7");
+    expect(screen.getByTestId("theme-thumb-icon-moon")).toBeInTheDocument();
     expect(document.documentElement.classList.contains("dark")).toBe(true);
   });
 

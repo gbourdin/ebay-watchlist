@@ -1,9 +1,9 @@
 import { useTheme } from "../../theme/useTheme";
 
-function SunIcon() {
+function SunIcon({ testId }: { testId?: string }) {
   return (
     <svg
-      data-testid="theme-icon-sun"
+      data-testid={testId}
       aria-hidden="true"
       viewBox="0 0 24 24"
       className="h-4 w-4"
@@ -19,10 +19,10 @@ function SunIcon() {
   );
 }
 
-function MoonIcon() {
+function MoonIcon({ testId }: { testId?: string }) {
   return (
     <svg
-      data-testid="theme-icon-moon"
+      data-testid={testId}
       aria-hidden="true"
       viewBox="0 0 24 24"
       className="h-4 w-4"
@@ -49,17 +49,25 @@ export default function ThemeToggle() {
       aria-checked={isDark}
       title={isDark ? "Switch to light mode" : "Switch to dark mode"}
       onClick={toggleTheme}
-      className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-500 px-2.5 text-slate-100 transition hover:bg-slate-800 dark:border-slate-500 dark:text-slate-100 dark:hover:bg-slate-800"
+      className="relative inline-flex h-8 w-14 items-center rounded-full border border-slate-500 bg-slate-900/70 p-0.5 text-slate-100 transition hover:bg-slate-800"
     >
+      <span className="pointer-events-none absolute inset-0 flex items-center justify-between px-2 text-slate-400">
+        <SunIcon />
+        <MoonIcon />
+      </span>
       <span
-        className={`inline-flex h-6 w-6 items-center justify-center rounded-full transition ${
-          isDark ? "bg-slate-100 text-slate-900" : "bg-amber-300 text-amber-900"
+        data-testid="theme-thumb"
+        className={`relative z-10 inline-flex h-6 w-6 items-center justify-center rounded-full shadow-sm transition-transform ${
+          isDark
+            ? "translate-x-7 bg-slate-100 text-slate-900"
+            : "translate-x-0 bg-amber-300 text-amber-900"
         }`}
       >
-        {isDark ? <MoonIcon /> : <SunIcon />}
-      </span>
-      <span className="inline-flex h-6 w-6 items-center justify-center rounded-full text-slate-300 dark:text-slate-300">
-        {isDark ? <SunIcon /> : <MoonIcon />}
+        {isDark ? (
+          <MoonIcon testId="theme-thumb-icon-moon" />
+        ) : (
+          <SunIcon testId="theme-thumb-icon-sun" />
+        )}
       </span>
     </button>
   );
