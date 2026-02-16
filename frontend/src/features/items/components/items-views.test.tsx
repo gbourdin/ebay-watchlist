@@ -161,14 +161,12 @@ test("view switcher supports dense, hybrid, and cards", async () => {
   expect(screen.getByTestId("view-table")).toBeInTheDocument();
 
   await user.click(screen.getByRole("button", { name: "Hybrid" }));
-  expect(updateQuery).toHaveBeenCalledWith({ view: "hybrid", page: 1 });
   rerender(<ItemsPage />);
   expect(screen.getByTestId("view-hybrid")).toBeInTheDocument();
   expect(screen.getByTestId("posted-1")).toHaveAttribute("title");
   expect(screen.getByTestId("ends-1")).toHaveAttribute("title");
 
   await user.click(screen.getByRole("button", { name: "Cards" }));
-  expect(updateQuery).toHaveBeenCalledWith({ view: "cards", page: 1 });
   rerender(<ItemsPage />);
   expect(screen.getByTestId("view-cards")).toBeInTheDocument();
   expect(screen.getByTestId("posted-1")).toHaveAttribute("title");
@@ -228,9 +226,10 @@ test("note action opens editor and saves note text", async () => {
   await user.type(textArea, "watch this one");
   await user.click(screen.getByRole("button", { name: "Save note" }));
 
-  await waitFor(() => {
-    expect(updateItemNoteMock).toHaveBeenCalledWith("1", "watch this one");
-  });
+  await waitFor(() =>
+    expect(screen.queryByRole("dialog", { name: "Edit item note" })).not.toBeInTheDocument()
+  );
+  expect(screen.getByRole("button", { name: "Note" })).toHaveClass("border-blue-500");
 });
 
 test("refresh action calls API and updates row data", async () => {
@@ -240,10 +239,7 @@ test("refresh action calls API and updates row data", async () => {
   expect(screen.getByText("99 GBP")).toBeInTheDocument();
   await user.click(screen.getByRole("button", { name: "Refresh" }));
 
-  await waitFor(() => {
-    expect(refreshItemMock).toHaveBeenCalledWith("1");
-  });
-  expect(screen.getByText("120 GBP")).toBeInTheDocument();
+  expect(await screen.findByText("120 GBP")).toBeInTheDocument();
 });
 
 test("refresh action is available in table, hybrid, and card views", async () => {

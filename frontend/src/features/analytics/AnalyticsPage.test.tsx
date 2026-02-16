@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { beforeEach, vi } from "vitest";
 
 import AnalyticsPage from "./AnalyticsPage";
@@ -36,13 +36,11 @@ beforeEach(() => {
 test("analytics page renders snapshot metrics and rankings", async () => {
   render(<AnalyticsPage />);
 
-  await waitFor(() => expect(fetchAnalyticsSnapshotMock).toHaveBeenCalledTimes(1));
-
-  expect(screen.getByText("Total Items")).toBeInTheDocument();
-  expect(screen.getByText("120")).toBeInTheDocument();
-  expect(screen.getByText("Top Sellers")).toBeInTheDocument();
-  expect(screen.getByText("alice")).toBeInTheDocument();
-  expect(screen.getByText("Electric Guitars")).toBeInTheDocument();
+  expect(await screen.findByText("Total Items")).toBeInTheDocument();
+  expect(await screen.findByText("120")).toBeInTheDocument();
+  expect(await screen.findByText("Top Sellers")).toBeInTheDocument();
+  expect(await screen.findByText("alice")).toBeInTheDocument();
+  expect(await screen.findByText("Electric Guitars")).toBeInTheDocument();
   const metricCard = screen.getByText("Total Items").closest("article");
   expect(metricCard).toHaveClass("dark:bg-slate-900");
 });

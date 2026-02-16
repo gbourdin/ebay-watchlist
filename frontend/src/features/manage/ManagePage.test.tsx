@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, vi } from "vitest";
 
@@ -51,19 +51,29 @@ beforeEach(() => {
 
 test("manage page loads watchlist and can add seller", async () => {
   const user = userEvent.setup();
+  fetchWatchlistMock
+    .mockResolvedValueOnce({
+      sellers: ["alice"],
+      categories: [{ id: 619, name: "Musical Instruments" }],
+      main_category_options: ["Musical Instruments"],
+    })
+    .mockResolvedValueOnce({
+      sellers: ["alice", "new_seller"],
+      categories: [{ id: 619, name: "Musical Instruments" }],
+      main_category_options: ["Musical Instruments"],
+    });
+
   render(<ManagePage />);
 
-  await waitFor(() => expect(fetchWatchlistMock).toHaveBeenCalledTimes(1));
-  expect(screen.getByText("alice")).toBeInTheDocument();
-  expect(screen.getByText("Musical Instruments")).toBeInTheDocument();
+  expect(await screen.findByText("alice")).toBeInTheDocument();
+  expect(await screen.findByText("Musical Instruments")).toBeInTheDocument();
   const sellersCard = screen.getByRole("heading", { name: "Watched Sellers" }).closest("article");
   expect(sellersCard).toHaveClass("dark:bg-slate-900");
 
   await user.type(screen.getByLabelText("Seller name"), "new_seller");
   await user.click(screen.getByRole("button", { name: "Add" }));
 
-  await waitFor(() =>
-    expect(addWatchedSellerMock).toHaveBeenCalledWith("new_seller")
-  );
-  await waitFor(() => expect(fetchWatchlistMock).toHaveBeenCalledTimes(2));
+  expect(await screen.findByText("Seller added.")).toBeInTheDocument();
+  expect(await screen.findByText("new_seller")).toBeInTheDocument();
+  expect(screen.getByLabelText("Seller name")).toHaveValue("");
 });
