@@ -4,6 +4,24 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Watched Listings</title>
+    <script>
+      (function () {
+        var storageKey = "ebay-watchlist.theme";
+        var rawStoredTheme = null;
+        try {
+          rawStoredTheme = window.localStorage.getItem(storageKey);
+        } catch (_error) {
+          rawStoredTheme = null;
+        }
+        var storedTheme =
+          rawStoredTheme === "light" || rawStoredTheme === "dark" ? rawStoredTheme : null;
+        var prefersDark =
+          typeof window.matchMedia === "function" &&
+          window.matchMedia("(prefers-color-scheme: dark)").matches;
+        var effectiveTheme = storedTheme || (prefersDark ? "dark" : "light");
+        document.documentElement.classList.toggle("dark", effectiveTheme === "dark");
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

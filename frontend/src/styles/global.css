@@ -6,9 +6,18 @@
   color-scheme: light;
 }
 
+.dark {
+  color-scheme: dark;
+}
+
 body {
   margin: 0;
   font-family: "Segoe UI", "Inter", system-ui, -apple-system, sans-serif;
   background: #f1f5f9;
   color: #0f172a;
+}
+
+.dark body {
+  background: #020617;
+  color: #e2e8f0;
 }

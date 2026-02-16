@@ -249,9 +249,9 @@ export default function ItemsPage({ itemsQuery, onMenuActionsChange }: ItemsPage
         onViewChange={onViewChange}
       />
 
-      {loading && <p className="mb-3 text-sm text-slate-500">Loading items...</p>}
-      {error && <p className="mb-3 text-sm text-red-600">{error}</p>}
-      {actionError && <p className="mb-3 text-sm text-red-600">{actionError}</p>}
+      {loading && <p className="mb-3 text-sm text-slate-500 dark:text-slate-400">Loading items...</p>}
+      {error && <p className="mb-3 text-sm text-red-600 dark:text-red-400">{error}</p>}
+      {actionError && <p className="mb-3 text-sm text-red-600 dark:text-red-400">{actionError}</p>}
 
       {query.view === "table" && (
         <>

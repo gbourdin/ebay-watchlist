@@ -33,5 +33,10 @@ export default defineConfig(({ command }) => ({
     environment: "jsdom",
     setupFiles: "./vitest.setup.ts",
     include: ["src/**/*.{test,spec}.ts", "src/**/*.{test,spec}.tsx"],
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "lcov"],
+      reportsDirectory: "./coverage",
+    },
   },
 }));

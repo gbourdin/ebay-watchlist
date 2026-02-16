@@ -5,6 +5,7 @@ import { afterEach, beforeEach, vi } from "vitest";
 
 import AppShell from "../../../components/layout/AppShell";
 import type { NavbarMenuAction } from "../../../components/layout/menu-actions";
+import ThemeProvider from "../../../theme/ThemeProvider";
 import ItemsPage from "../ItemsPage";
 import type { ItemRow } from "../api";
 
@@ -94,6 +95,16 @@ vi.mock("../api", async (importOriginal) => {
 
 beforeEach(() => {
   window.localStorage.clear();
+  window.matchMedia = vi.fn().mockImplementation(() => ({
+    matches: false,
+    media: "(prefers-color-scheme: dark)",
+    onchange: null,
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    addListener: () => {},
+    removeListener: () => {},
+    dispatchEvent: () => true,
+  }));
   queryState = {
     seller: [],
     category: [],
@@ -139,6 +150,8 @@ test("dense table is the default view", () => {
   expect(screen.getByTestId("ends-1").textContent).not.toContain("T");
   expect(screen.getByTestId("posted-1")).toHaveAttribute("title");
   expect(screen.getByTestId("ends-1")).toHaveAttribute("title");
+  expect(screen.getByTestId("items-toolbar")).toHaveClass("dark:bg-slate-900");
+  expect(screen.getByTestId("view-table")).toHaveClass("dark:border-slate-700");
 });
 
 test("view switcher supports dense, hybrid, and cards", async () => {
@@ -316,9 +329,11 @@ test("navbar menu item opens the column controls dialog end-to-end", async () =>
   function Harness() {
     const [menuActions, setMenuActions] = useState<NavbarMenuAction[]>([]);
     return (
-      <AppShell activePath="/" menuActions={menuActions} sidebarEnabled={false}>
-        <ItemsPage onMenuActionsChange={setMenuActions} />
-      </AppShell>
+      <ThemeProvider>
+        <AppShell activePath="/" menuActions={menuActions} sidebarEnabled={false}>
+          <ItemsPage onMenuActionsChange={setMenuActions} />
+        </AppShell>
+      </ThemeProvider>
     );
   }
 

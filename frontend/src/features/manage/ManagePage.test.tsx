@@ -56,6 +56,8 @@ test("manage page loads watchlist and can add seller", async () => {
   await waitFor(() => expect(fetchWatchlistMock).toHaveBeenCalledTimes(1));
   expect(screen.getByText("alice")).toBeInTheDocument();
   expect(screen.getByText("Musical Instruments")).toBeInTheDocument();
+  const sellersCard = screen.getByRole("heading", { name: "Watched Sellers" }).closest("article");
+  expect(sellersCard).toHaveClass("dark:bg-slate-900");
 
   await user.type(screen.getByLabelText("Seller name"), "new_seller");
   await user.click(screen.getByRole("button", { name: "Add" }));
