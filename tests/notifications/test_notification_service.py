@@ -38,34 +38,39 @@ def test_notify_new_items_warns_when_topic_is_not_configured(caplog):
     assert "NTFY_TOPIC_ID is not configured; skipping notifications" in caplog.text
 
 
-def test_notify_new_items_dispatches_individual_and_grouped_paths(monkeypatch):
+def _build_item(seller_name: str):
+    return SimpleNamespace(
+        seller_name=seller_name,
+        current_bid_price=15.5,
+        current_bid_price_currency="GBP",
+        price=12.0,
+        price_currency="GBP",
+        title=f"{seller_name} item",
+        web_url=f"https://example.com/{seller_name}",
+    )
+
+
+def test_notify_new_items_uses_individual_for_small_batches_and_grouped_for_large():
+    sent_messages: list[dict] = []
+
+    class CapturingClient:
+        def send(self, **kwargs):
+            sent_messages.append(kwargs)
+
     service = NotificationService.__new__(NotificationService)
-    service._client = object()
+    service._client = CapturingClient()
 
-    calls = {"individual": [], "grouped": []}
-    monkeypatch.setattr(
-        service,
-        "send_individual_notification",
-        lambda item: calls["individual"].append(item.seller_name),
-    )
-    monkeypatch.setattr(
-        service,
-        "send_grouped_notification",
-        lambda items: calls["grouped"].append([item.seller_name for item in items]),
-    )
+    service.notify_new_items([_build_item("alice"), _build_item("bob")])
+    assert len(sent_messages) == 2
+    assert {entry["title"] for entry in sent_messages} == {
+        "New item from alice",
+        "New item from bob",
+    }
 
-    small_batch = [SimpleNamespace(seller_name="alice"), SimpleNamespace(seller_name="bob")]
-    large_batch = [
-        SimpleNamespace(seller_name="alice"),
-        SimpleNamespace(seller_name="alice"),
-        SimpleNamespace(seller_name="bob"),
-    ]
-
-    service.notify_new_items(small_batch)
-    service.notify_new_items(large_batch)
-
-    assert calls["individual"] == ["alice", "bob"]
-    assert calls["grouped"] == [["alice", "alice", "bob"]]
+    sent_messages.clear()
+    service.notify_new_items([_build_item("alice"), _build_item("alice"), _build_item("bob")])
+    assert len(sent_messages) == 1
+    assert sent_messages[0]["title"] == "3 new items published"
 
 
 def test_send_individual_notification_includes_web_links(monkeypatch):

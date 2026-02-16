@@ -7,23 +7,6 @@ def test_fetch_updates_fails_fast_without_credentials(monkeypatch):
     monkeypatch.delenv("EBAY_CLIENT_ID", raising=False)
     monkeypatch.delenv("EBAY_CLIENT_SECRET", raising=False)
 
-    monkeypatch.setattr(
-        cli_main.SellerRepository,
-        "get_enabled_sellers",
-        staticmethod(lambda: ["seller"]),
-    )
-    monkeypatch.setattr(
-        cli_main.CategoryRepository,
-        "get_enabled_categories",
-        staticmethod(lambda: [619]),
-    )
-    monkeypatch.setattr(
-        cli_main.ItemRepository,
-        "get_items_created_after_datetime",
-        staticmethod(lambda start: []),
-    )
-    monkeypatch.setattr(cli_main, "print_with_timestamp", lambda message: None)
-
     with pytest.raises(ValueError, match="EBAY_CLIENT_ID and EBAY_CLIENT_SECRET"):
         cli_main.fetch_updates(limit=1)
 
