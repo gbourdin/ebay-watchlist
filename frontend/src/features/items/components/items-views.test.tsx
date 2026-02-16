@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { useState } from "react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, vi } from "vitest";
@@ -238,6 +238,17 @@ test("uses placeholder image when source is missing in all views", async () => {
   await user.click(screen.getByRole("button", { name: "Cards" }));
   rerender(<ItemsPage />);
   assertPlaceholder();
+});
+
+test("replaces image with placeholder if loading fails", () => {
+  render(<ItemsPage />);
+
+  const itemImage = screen.getByRole("img", { name: "Vintage Telecaster" }) as HTMLImageElement;
+  expect(itemImage).toHaveAttribute("src", "https://img.example/item.jpg");
+
+  fireEvent.error(itemImage);
+
+  expect(itemImage).toHaveAttribute("src", expect.stringContaining("data:image/svg+xml"));
 });
 
 test("view switcher provides compact icon controls on mobile", () => {
