@@ -77,6 +77,7 @@ Frontend:
 ```bash
 npm --prefix frontend run lint
 npm --prefix frontend run test
+npm --prefix frontend run test:coverage
 npm --prefix frontend run build
 ```
 
