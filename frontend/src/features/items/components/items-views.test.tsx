@@ -28,7 +28,14 @@ const sampleItem: ItemRow = {
   note_last_modified: null,
 };
 let rows: ItemRow[] = [sampleItem];
-const { updateItemNoteMock, refreshItemMock } = vi.hoisted(() => ({
+const {
+  toggleFavoriteMock,
+  toggleHiddenMock,
+  updateItemNoteMock,
+  refreshItemMock,
+} = vi.hoisted(() => ({
+  toggleFavoriteMock: vi.fn(),
+  toggleHiddenMock: vi.fn(),
   updateItemNoteMock: vi.fn(),
   refreshItemMock: vi.fn(),
 }));
@@ -81,8 +88,8 @@ vi.mock("../api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../api")>();
   return {
     ...actual,
-    toggleFavorite: vi.fn().mockResolvedValue(undefined),
-    toggleHidden: vi.fn().mockResolvedValue(undefined),
+    toggleFavorite: toggleFavoriteMock,
+    toggleHidden: toggleHiddenMock,
     refreshItem: refreshItemMock,
     updateItemNote: updateItemNoteMock.mockResolvedValue({
       item_id: "1",
@@ -119,8 +126,12 @@ beforeEach(() => {
   };
   rows = [sampleItem];
   updateQuery.mockClear();
+  toggleFavoriteMock.mockReset();
+  toggleHiddenMock.mockReset();
   updateItemNoteMock.mockClear();
   refreshItemMock.mockClear();
+  toggleFavoriteMock.mockResolvedValue(undefined);
+  toggleHiddenMock.mockResolvedValue(undefined);
   refreshItemMock.mockResolvedValue({
     ...sampleItem,
     price: 120,
@@ -240,6 +251,75 @@ test("refresh action calls API and updates row data", async () => {
   await user.click(screen.getByRole("button", { name: "Refresh" }));
 
   expect(await screen.findByText("120 GBP")).toBeInTheDocument();
+});
+
+test("shows query loading and request error states", () => {
+  render(
+    <ItemsPage
+      itemsQuery={{
+        query: queryState,
+        data: null,
+        loading: true,
+        error: "items fetch failed",
+        updateQuery,
+        resetQuery: vi.fn(),
+      }}
+    />
+  );
+
+  expect(screen.getByText("Loading items...")).toBeInTheDocument();
+  expect(screen.getByText("items fetch failed")).toBeInTheDocument();
+});
+
+test("favorite failure shows error and rolls optimistic state back", async () => {
+  const user = userEvent.setup();
+  toggleFavoriteMock.mockRejectedValueOnce(new Error("failed"));
+  render(<ItemsPage />);
+
+  await user.click(screen.getByRole("button", { name: "Fav" }));
+
+  expect(await screen.findByText("Could not update favorite state. Please retry.")).toBeInTheDocument();
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Fav" })).toHaveAttribute("aria-pressed", "false")
+  );
+});
+
+test("hidden failure shows error and rolls optimistic state back", async () => {
+  const user = userEvent.setup();
+  toggleHiddenMock.mockRejectedValueOnce(new Error("failed"));
+  render(<ItemsPage />);
+
+  await user.click(screen.getByRole("button", { name: "Hide" }));
+
+  expect(await screen.findByText("Could not update hidden state. Please retry.")).toBeInTheDocument();
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Hide" })).toHaveAttribute("aria-pressed", "false")
+  );
+});
+
+test("note save failure keeps editor open and displays action error", async () => {
+  const user = userEvent.setup();
+  updateItemNoteMock.mockRejectedValueOnce(new Error("save failed"));
+  render(<ItemsPage />);
+
+  await user.click(screen.getByRole("button", { name: "Note" }));
+  await user.type(screen.getByLabelText("Personal note"), "still pending");
+  await user.click(screen.getByRole("button", { name: "Save note" }));
+
+  expect((await screen.findAllByText("Could not update note. Please retry.")).length).toBeGreaterThan(
+    0
+  );
+  expect(screen.getByRole("dialog", { name: "Edit item note" })).toBeInTheDocument();
+});
+
+test("refresh failure surfaces action error", async () => {
+  const user = userEvent.setup();
+  refreshItemMock.mockRejectedValueOnce(new Error("refresh failed"));
+  render(<ItemsPage />);
+
+  await user.click(screen.getByRole("button", { name: "Refresh" }));
+
+  expect(await screen.findByText("Could not refresh item data. Please retry.")).toBeInTheDocument();
 });
 
 test("refresh action is available in table, hybrid, and card views", async () => {
@@ -365,4 +445,17 @@ test("seller and category labels add filters across table, hybrid, and card view
   await user.click(screen.getByRole("button", { name: "Filter by category Electric Guitars" }));
   expect(queryState.seller).toContain("alice");
   expect(queryState.category).toContain("Electric Guitars");
+});
+
+test("repeated seller/category quick-filters do not duplicate selected values", async () => {
+  const user = userEvent.setup();
+  render(<ItemsPage />);
+
+  await user.click(screen.getByRole("button", { name: "Filter by seller alice" }));
+  await user.click(screen.getByRole("button", { name: "Filter by seller alice" }));
+  await user.click(screen.getByRole("button", { name: "Filter by category Electric Guitars" }));
+  await user.click(screen.getByRole("button", { name: "Filter by category Electric Guitars" }));
+
+  expect(queryState.seller).toEqual(["alice"]);
+  expect(queryState.category).toEqual(["Electric Guitars"]);
 });
