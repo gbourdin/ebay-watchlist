@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { useState } from "react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, vi } from "vitest";
@@ -215,6 +215,40 @@ test("dense table images keep square shape on mobile", () => {
   expect(itemImage).toHaveClass("aspect-square");
   expect(itemImage).toHaveClass("min-w-20");
   expect(itemImage).toHaveClass("max-w-none");
+});
+
+test("uses placeholder image when source is missing in all views", async () => {
+  const user = userEvent.setup();
+  rows = [{ ...sampleItem, image_url: "" }];
+  const { rerender } = render(<ItemsPage />);
+
+  const assertPlaceholder = () => {
+    expect(screen.getByRole("img", { name: "Vintage Telecaster" })).toHaveAttribute(
+      "src",
+      expect.stringContaining("data:image/svg+xml")
+    );
+  };
+
+  assertPlaceholder();
+
+  await user.click(screen.getByRole("button", { name: "Hybrid" }));
+  rerender(<ItemsPage />);
+  assertPlaceholder();
+
+  await user.click(screen.getByRole("button", { name: "Cards" }));
+  rerender(<ItemsPage />);
+  assertPlaceholder();
+});
+
+test("replaces image with placeholder if loading fails", () => {
+  render(<ItemsPage />);
+
+  const itemImage = screen.getByRole("img", { name: "Vintage Telecaster" }) as HTMLImageElement;
+  expect(itemImage).toHaveAttribute("src", "https://img.example/item.jpg");
+
+  fireEvent.error(itemImage);
+
+  expect(itemImage).toHaveAttribute("src", expect.stringContaining("data:image/svg+xml"));
 });
 
 test("view switcher provides compact icon controls on mobile", () => {

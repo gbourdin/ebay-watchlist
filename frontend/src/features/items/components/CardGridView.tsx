@@ -1,5 +1,6 @@
 import type { ItemRow } from "../api";
 import { formatExactDateTime, humanizeDateTime } from "../relative-time";
+import { handleItemImageError, resolveItemImageSrc } from "./item-image";
 
 interface CardGridViewProps {
   items: ItemRow[];
@@ -35,8 +36,9 @@ export default function CardGridView({
           className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none"
         >
           <img
-            src={item.image_url}
+            src={resolveItemImageSrc(item.image_url)}
             alt={item.title}
+            onError={handleItemImageError}
             className="h-[220px] w-full object-cover"
             loading="lazy"
           />

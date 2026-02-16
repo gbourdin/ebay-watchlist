@@ -1,5 +1,6 @@
 import type { ItemRow } from "../api";
 import { formatExactDateTime, humanizeDateTime } from "../relative-time";
+import { handleItemImageError, resolveItemImageSrc } from "./item-image";
 
 interface HybridListViewProps {
   items: ItemRow[];
@@ -35,8 +36,9 @@ export default function HybridListView({
           className="grid gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none sm:grid-cols-[120px_minmax(0,1fr)_130px]"
         >
           <img
-            src={item.image_url}
+            src={resolveItemImageSrc(item.image_url)}
             alt={item.title}
+            onError={handleItemImageError}
             className="h-[120px] w-[120px] rounded-lg object-cover"
             loading="lazy"
           />
