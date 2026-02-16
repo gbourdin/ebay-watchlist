@@ -8,6 +8,8 @@ import type { NavbarMenuAction } from "../../../components/layout/menu-actions";
 import ThemeProvider from "../../../theme/ThemeProvider";
 import ItemsPage from "../ItemsPage";
 import type { ItemRow } from "../api";
+import type { ItemsQueryState } from "../query-state";
+import type { QueryPatch } from "../useItemsQuery";
 
 const sampleItem: ItemRow = {
   item_id: "1",
@@ -40,29 +42,23 @@ const {
   refreshItemMock: vi.fn(),
 }));
 
-let queryState = {
+let queryState: ItemsQueryState = {
   seller: [],
   category: [],
   main_category: [],
   q: "",
   favorite: false,
   show_hidden: false,
-  sort: "newest" as const,
-  view: "table" as const,
+  sort: "newest",
+  view: "table",
   page: 1,
   page_size: 100,
 };
 
-const updateQuery = vi.fn(
-  (
-    patch:
-      | Partial<typeof queryState>
-      | ((prev: typeof queryState) => Partial<typeof queryState>)
-  ) => {
-    const nextPatch = typeof patch === "function" ? patch(queryState) : patch;
-    queryState = { ...queryState, ...nextPatch };
-  }
-);
+const updateQuery = vi.fn((patch: QueryPatch) => {
+  const nextPatch = typeof patch === "function" ? patch(queryState) : patch;
+  queryState = { ...queryState, ...nextPatch };
+});
 
 vi.mock("../useItemsQuery", () => ({
   useItemsQuery: () => ({
