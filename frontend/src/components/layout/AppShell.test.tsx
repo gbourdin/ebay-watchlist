@@ -44,12 +44,19 @@ test("sidebar collapses on desktop and becomes drawer on mobile", async () => {
   expect(screen.getByTestId("sidebar-rail")).toBeInTheDocument();
   expect(screen.queryByText("Show Filters")).not.toBeInTheDocument();
 
-  await user.click(screen.getByRole("button", { name: "Open filters" }));
+  const openFiltersButton = screen.getByRole("button", { name: "Open filters" });
+  expect(openFiltersButton).toHaveClass(
+    "rounded-full",
+    "h-14",
+    "w-14"
+  );
+  await user.click(openFiltersButton);
 
   const mobileDialog = screen.getByRole("dialog", { name: "Filters" });
   expect(mobileDialog).toBeInTheDocument();
   expect(mobileDialog).toHaveClass("bg-[#040823]", "dark:bg-[#040823]", "rounded-2xl");
   expect(screen.getByRole("button", { name: "Close filters" })).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Open filters" })).not.toBeInTheDocument();
 });
 
 test("sidebar hidden state does not reduce table width", async () => {

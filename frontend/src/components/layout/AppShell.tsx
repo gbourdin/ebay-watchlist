@@ -105,7 +105,6 @@ export default function AppShell({
         activePath={activePath}
         onNavigate={onNavigate}
         menuActions={menuActions}
-        onOpenSidebar={hasSidebar ? () => setMobileSidebarOpen(true) : undefined}
       />
 
       <div className="pt-16">
@@ -210,6 +209,30 @@ export default function AppShell({
           </div>
         </div>
       </div>
+
+      {hasSidebar && !mobileSidebarOpen && (
+        <button
+          type="button"
+          aria-label="Open filters"
+          onClick={() => setMobileSidebarOpen(true)}
+          className="fixed bottom-5 left-5 z-40 inline-flex h-14 w-14 items-center justify-center rounded-full border border-slate-500 bg-slate-900 text-slate-100 shadow-xl transition hover:bg-slate-800 lg:hidden"
+        >
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 24 24"
+            className="h-6 w-6"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M3 6h18" />
+            <path d="M6 12h12" />
+            <path d="M10 18h4" />
+          </svg>
+        </button>
+      )}
 
       {hasSidebar && mobileSidebarOpen && (
         <div

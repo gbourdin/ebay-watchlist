@@ -5,7 +5,6 @@ import type { NavbarMenuAction } from "./menu-actions";
 import ThemeToggle from "./ThemeToggle";
 
 interface NavbarProps {
-  onOpenSidebar?: () => void;
   activePath?: AppRoutePath;
   onNavigate?: (path: AppRoutePath) => void;
   menuActions?: NavbarMenuAction[];
@@ -23,7 +22,6 @@ const NAV_DESTINATIONS: NavDestination[] = [
 ];
 
 export default function Navbar({
-  onOpenSidebar,
   activePath = "/",
   onNavigate,
   menuActions = [],
@@ -109,17 +107,6 @@ export default function Navbar({
           </div>
 
           <div className="flex items-center gap-2">
-            {onOpenSidebar && (
-              <button
-                type="button"
-                aria-label="Open filters"
-                onClick={onOpenSidebar}
-                className="inline-flex h-10 items-center rounded-lg border border-slate-500 px-3 text-sm font-medium text-slate-100 transition hover:bg-slate-800 lg:hidden"
-              >
-                Filters
-              </button>
-            )}
-
             <ThemeToggle />
 
             <div ref={menuRef} className="relative">
