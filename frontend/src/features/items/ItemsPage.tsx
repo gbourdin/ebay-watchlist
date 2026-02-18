@@ -16,7 +16,6 @@ import CardGridView from "./components/CardGridView";
 import ItemNoteEditor from "./components/ItemNoteEditor";
 import DenseTableColumnControls from "./components/DenseTableColumnControls";
 import { useItemsQuery, type UseItemsQueryResult } from "./useItemsQuery";
-import useIsPhoneViewport from "./useIsPhoneViewport";
 import {
   loadStoredDenseTableColumns,
   saveDenseTableColumns,
@@ -35,7 +34,6 @@ interface ItemsPageProps {
 
 export default function ItemsPage({ itemsQuery, onMenuActionsChange }: ItemsPageProps) {
   const { query, data, loading, error, updateQuery } = itemsQuery ?? useItemsQuery();
-  const isPhoneViewport = useIsPhoneViewport();
   const [optimisticState, setOptimisticState] = useState<Record<string, ItemPatch>>({});
   const [actionError, setActionError] = useState<string | null>(null);
   const [noteEditorItem, setNoteEditorItem] = useState<ItemRow | null>(null);
@@ -85,8 +83,6 @@ export default function ItemsPage({ itemsQuery, onMenuActionsChange }: ItemsPage
       return { ...item, ...patch };
     });
   }, [data?.items, optimisticState]);
-  const activeView: ItemsView =
-    isPhoneViewport && query.view === "hybrid" ? "cards" : query.view;
 
   const editingItem = noteEditorItem
     ? items.find((item) => item.item_id === noteEditorItem.item_id) ?? noteEditorItem
@@ -215,8 +211,7 @@ export default function ItemsPage({ itemsQuery, onMenuActionsChange }: ItemsPage
   }
 
   function onViewChange(view: ItemsView) {
-    const nextView = isPhoneViewport && view === "hybrid" ? "cards" : view;
-    updateQuery({ view: nextView, page: 1 });
+    updateQuery({ view, page: 1 });
   }
 
   function appendFilterValue(field: FilterField, value: string) {
@@ -249,7 +244,7 @@ export default function ItemsPage({ itemsQuery, onMenuActionsChange }: ItemsPage
       <ItemsToolbar
         total={data?.total ?? 0}
         sort={query.sort}
-        view={activeView}
+        view={query.view}
         onSortChange={onSortChange}
         onViewChange={onViewChange}
       />
@@ -258,7 +253,7 @@ export default function ItemsPage({ itemsQuery, onMenuActionsChange }: ItemsPage
       {error && <p className="mb-3 text-sm text-red-600 dark:text-red-400">{error}</p>}
       {actionError && <p className="mb-3 text-sm text-red-600 dark:text-red-400">{actionError}</p>}
 
-      {activeView === "table" && (
+      {query.view === "table" && (
         <>
           <DenseTableColumnControls
             columns={visibleColumns}
@@ -281,7 +276,7 @@ export default function ItemsPage({ itemsQuery, onMenuActionsChange }: ItemsPage
         </>
       )}
 
-      {activeView === "hybrid" && (
+      {query.view === "hybrid" && (
         <HybridListView
           items={items}
           onToggleFavorite={handleFavorite}
@@ -294,7 +289,7 @@ export default function ItemsPage({ itemsQuery, onMenuActionsChange }: ItemsPage
         />
       )}
 
-      {activeView === "cards" && (
+      {query.view === "cards" && (
         <CardGridView
           items={items}
           onToggleFavorite={handleFavorite}

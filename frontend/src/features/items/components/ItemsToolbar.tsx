@@ -1,5 +1,4 @@
 import type { ItemsSort, ItemsView } from "../api";
-import useIsPhoneViewport from "../useIsPhoneViewport";
 
 interface ItemsToolbarProps {
   total: number;
@@ -40,10 +39,7 @@ export default function ItemsToolbar({
   onSortChange,
   onViewChange,
 }: ItemsToolbarProps) {
-  const isPhoneViewport = useIsPhoneViewport();
-  const availableViewOptions = isPhoneViewport
-    ? viewOptions.filter((option) => option.value !== "hybrid")
-    : viewOptions;
+  const mobileViewOptions = viewOptions.filter((option) => option.value !== "hybrid");
 
   return (
     <div
@@ -70,7 +66,7 @@ export default function ItemsToolbar({
         </select>
 
         <div className="inline-flex rounded-lg border border-slate-300 bg-white p-1 dark:border-slate-600 dark:bg-slate-800 sm:hidden">
-          {availableViewOptions.map((option) => (
+          {mobileViewOptions.map((option) => (
             <button
               key={option.value}
               type="button"
@@ -88,7 +84,7 @@ export default function ItemsToolbar({
         </div>
 
         <div className="hidden rounded-lg border border-slate-300 bg-white p-1 dark:border-slate-600 dark:bg-slate-800 sm:inline-flex">
-          {availableViewOptions.map((option) => (
+          {viewOptions.map((option) => (
             <button
               key={option.value}
               type="button"
