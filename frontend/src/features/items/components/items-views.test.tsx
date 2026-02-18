@@ -55,6 +55,19 @@ let queryState: ItemsQueryState = {
   page_size: 100,
 };
 
+function setPhoneViewport(enabled: boolean) {
+  window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+    matches: enabled && query.includes("max-width: 639px"),
+    media: query,
+    onchange: null,
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    addListener: () => {},
+    removeListener: () => {},
+    dispatchEvent: () => true,
+  }));
+}
+
 const updateQuery = vi.fn((patch: QueryPatch) => {
   const nextPatch = typeof patch === "function" ? patch(queryState) : patch;
   queryState = { ...queryState, ...nextPatch };
@@ -98,16 +111,7 @@ vi.mock("../api", async (importOriginal) => {
 
 beforeEach(() => {
   window.localStorage.clear();
-  window.matchMedia = vi.fn().mockImplementation(() => ({
-    matches: false,
-    media: "(prefers-color-scheme: dark)",
-    onchange: null,
-    addEventListener: () => {},
-    removeEventListener: () => {},
-    addListener: () => {},
-    removeListener: () => {},
-    dispatchEvent: () => true,
-  }));
+  setPhoneViewport(false);
   queryState = {
     seller: [],
     category: [],
@@ -248,11 +252,27 @@ test("replaces image with placeholder if loading fails", () => {
 });
 
 test("view switcher provides compact icon controls on mobile", () => {
+  setPhoneViewport(true);
   render(<ItemsPage />);
 
   expect(screen.getByRole("button", { name: "Switch to table view" })).toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "Switch to hybrid view" })).toBeInTheDocument();
+  expect(
+    screen.queryByRole("button", { name: "Switch to hybrid view" })
+  ).not.toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Switch to cards view" })).toBeInTheDocument();
+});
+
+test("hybrid query falls back to cards on phone viewport", () => {
+  setPhoneViewport(true);
+  queryState = {
+    ...queryState,
+    view: "hybrid",
+  };
+
+  render(<ItemsPage />);
+
+  expect(screen.getByTestId("view-cards")).toBeInTheDocument();
+  expect(screen.queryByTestId("view-hybrid")).not.toBeInTheDocument();
 });
 
 test("note action opens editor and saves note text", async () => {
