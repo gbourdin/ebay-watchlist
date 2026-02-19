@@ -251,7 +251,9 @@ test("view switcher provides compact icon controls on mobile", () => {
   render(<ItemsPage />);
 
   expect(screen.getByRole("button", { name: "Switch to table view" })).toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "Switch to hybrid view" })).toBeInTheDocument();
+  expect(
+    screen.queryByRole("button", { name: "Switch to hybrid view" })
+  ).not.toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Switch to cards view" })).toBeInTheDocument();
 });
 
