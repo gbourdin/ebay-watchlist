@@ -213,6 +213,17 @@ test("dense table images keep square shape on mobile", () => {
   expect(itemImage).toHaveClass("max-w-none");
 });
 
+test("cards view keeps full image visible without distortion", async () => {
+  const user = userEvent.setup();
+  const { rerender } = render(<ItemsPage />);
+
+  await user.click(screen.getByRole("button", { name: "Cards" }));
+  rerender(<ItemsPage />);
+
+  const itemImage = screen.getByRole("img", { name: "Vintage Telecaster" });
+  expect(itemImage).toHaveClass("object-contain", "h-full", "w-full");
+});
+
 test("uses placeholder image when source is missing in all views", async () => {
   const user = userEvent.setup();
   rows = [{ ...sampleItem, image_url: "" }];

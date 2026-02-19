@@ -35,13 +35,15 @@ export default function CardGridView({
           key={item.item_id}
           className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none"
         >
-          <img
-            src={resolveItemImageSrc(item.image_url)}
-            alt={item.title}
-            onError={handleItemImageError}
-            className="h-[220px] w-full object-cover"
-            loading="lazy"
-          />
+          <div className="flex h-[220px] w-full items-center justify-center bg-slate-100 p-2 dark:bg-slate-800/70">
+            <img
+              src={resolveItemImageSrc(item.image_url)}
+              alt={item.title}
+              onError={handleItemImageError}
+              className="h-full w-full object-contain"
+              loading="lazy"
+            />
+          </div>
           <div className="space-y-2 p-4">
             <a
               href={item.web_url}
