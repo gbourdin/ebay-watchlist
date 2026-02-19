@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import type { AppRoutePath } from "../../app/routes";
 import type { NavbarMenuAction } from "./menu-actions";
@@ -83,18 +83,51 @@ export default function AppShell({
     return window.localStorage.getItem(SIDEBAR_STORAGE_KEY) != "0";
   });
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [mobileSidebarRendered, setMobileSidebarRendered] = useState(false);
+  const mobileSidebarCloseTimer = useRef<number | null>(null);
 
   useEffect(() => {
     window.localStorage.setItem(SIDEBAR_STORAGE_KEY, desktopSidebarOpen ? "1" : "0");
   }, [desktopSidebarOpen]);
 
   useEffect(() => {
+    return () => {
+      if (mobileSidebarCloseTimer.current !== null) {
+        window.clearTimeout(mobileSidebarCloseTimer.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     if (!sidebarEnabled) {
       setMobileSidebarOpen(false);
+      setMobileSidebarRendered(false);
     }
   }, [sidebarEnabled]);
 
   const hasSidebar = sidebarEnabled;
+
+  function openMobileSidebar() {
+    if (mobileSidebarCloseTimer.current !== null) {
+      window.clearTimeout(mobileSidebarCloseTimer.current);
+      mobileSidebarCloseTimer.current = null;
+    }
+    setMobileSidebarRendered(true);
+    window.setTimeout(() => {
+      setMobileSidebarOpen(true);
+    }, 0);
+  }
+
+  function closeMobileSidebar() {
+    setMobileSidebarOpen(false);
+    if (mobileSidebarCloseTimer.current !== null) {
+      window.clearTimeout(mobileSidebarCloseTimer.current);
+    }
+    mobileSidebarCloseTimer.current = window.setTimeout(() => {
+      setMobileSidebarRendered(false);
+      mobileSidebarCloseTimer.current = null;
+    }, 220);
+  }
 
   return (
     <div
@@ -105,7 +138,6 @@ export default function AppShell({
         activePath={activePath}
         onNavigate={onNavigate}
         menuActions={menuActions}
-        onOpenSidebar={hasSidebar ? () => setMobileSidebarOpen(true) : undefined}
       />
 
       <div className="pt-16">
@@ -211,24 +243,54 @@ export default function AppShell({
         </div>
       </div>
 
-      {hasSidebar && mobileSidebarOpen && (
+      {hasSidebar && !mobileSidebarRendered && (
+        <button
+          type="button"
+          aria-label="Open filters"
+          onClick={openMobileSidebar}
+          className="fixed bottom-5 left-5 z-40 inline-flex h-14 w-14 items-center justify-center rounded-full border border-slate-600 bg-[#040823] text-slate-100 shadow-xl transition hover:bg-[#0b1233] dark:border-slate-500 dark:bg-[#040823] dark:text-slate-100 dark:hover:bg-[#0b1233] lg:hidden"
+        >
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 24 24"
+            className="h-6 w-6"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M3 6h18" />
+            <path d="M6 12h12" />
+            <path d="M10 18h4" />
+          </svg>
+        </button>
+      )}
+
+      {hasSidebar && mobileSidebarRendered && (
         <div
-          className="fixed inset-0 z-50 bg-slate-950/55 backdrop-blur-[1px] lg:hidden"
+          className={`fixed inset-0 z-50 bg-slate-950/55 backdrop-blur-[1px] transition-opacity duration-200 ease-out lg:hidden ${
+            mobileSidebarOpen ? "opacity-100" : "opacity-0"
+          }`}
           role="presentation"
-          onClick={() => setMobileSidebarOpen(false)}
+          onClick={closeMobileSidebar}
         >
           <div
             role="dialog"
             aria-label="Filters"
             onClick={(event) => event.stopPropagation()}
-            className="absolute bottom-3 left-3 top-[4.75rem] w-[min(88vw,360px)] overflow-hidden rounded-2xl border border-slate-800 bg-[#040823] shadow-2xl dark:border-slate-800 dark:bg-[#040823]"
+            className={`absolute bottom-3 left-3 top-[4.75rem] w-[min(88vw,360px)] overflow-hidden rounded-2xl border border-slate-800 bg-[#040823] shadow-2xl transition-all duration-200 ease-out dark:border-slate-800 dark:bg-[#040823] ${
+              mobileSidebarOpen
+                ? "translate-x-0 opacity-100"
+                : "-translate-x-6 opacity-0"
+            }`}
           >
             <div className="h-full overflow-y-auto">
               <Sidebar
                 heading="Filters"
                 toggleLabel="×"
                 toggleAriaLabel="Close filters"
-                onToggle={() => setMobileSidebarOpen(false)}
+                onToggle={closeMobileSidebar}
               >
                 {sidebar ?? <p>Sidebar controls will be implemented in the next tasks.</p>}
               </Sidebar>
