@@ -49,6 +49,7 @@ test("sidebar collapses on desktop and becomes drawer on mobile", async () => {
     "rounded-full",
     "h-14",
     "w-14",
+    "right-5",
     "bg-[#040823]",
     "dark:bg-[#040823]"
   );
