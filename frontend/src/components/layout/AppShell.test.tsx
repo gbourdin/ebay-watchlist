@@ -48,13 +48,21 @@ test("sidebar collapses on desktop and becomes drawer on mobile", async () => {
   expect(openFiltersButton).toHaveClass(
     "rounded-full",
     "h-14",
-    "w-14"
+    "w-14",
+    "bg-sky-600",
+    "dark:bg-sky-500"
   );
   await user.click(openFiltersButton);
 
-  const mobileDialog = screen.getByRole("dialog", { name: "Filters" });
+  const mobileDialog = await screen.findByRole("dialog", { name: "Filters" });
   expect(mobileDialog).toBeInTheDocument();
-  expect(mobileDialog).toHaveClass("bg-[#040823]", "dark:bg-[#040823]", "rounded-2xl");
+  expect(mobileDialog).toHaveClass(
+    "bg-[#040823]",
+    "dark:bg-[#040823]",
+    "rounded-2xl",
+    "transition-all",
+    "duration-200"
+  );
   expect(screen.getByRole("button", { name: "Close filters" })).toBeInTheDocument();
   expect(screen.queryByRole("button", { name: "Open filters" })).not.toBeInTheDocument();
 });
