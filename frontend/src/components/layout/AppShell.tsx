@@ -248,7 +248,7 @@ export default function AppShell({
           type="button"
           aria-label="Open filters"
           onClick={openMobileSidebar}
-          className="fixed bottom-5 left-5 z-40 inline-flex h-14 w-14 items-center justify-center rounded-full border border-slate-600 bg-[#040823] text-slate-100 shadow-xl transition hover:bg-[#0b1233] dark:border-slate-500 dark:bg-[#040823] dark:text-slate-100 dark:hover:bg-[#0b1233] lg:hidden"
+          className="fixed bottom-5 right-5 z-40 inline-flex h-14 w-14 items-center justify-center rounded-full border border-slate-600 bg-[#040823] text-slate-100 shadow-xl transition hover:bg-[#0b1233] dark:border-slate-500 dark:bg-[#040823] dark:text-slate-100 dark:hover:bg-[#0b1233] lg:hidden"
         >
           <svg
             aria-hidden="true"
