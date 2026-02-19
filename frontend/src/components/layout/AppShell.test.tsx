@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, vi } from "vitest";
 
@@ -139,4 +139,107 @@ test("shell surfaces include dark-mode class variants", () => {
     "dark:border-slate-800"
   );
   expect(screen.getByTestId("results-main")).toHaveClass("dark:bg-slate-900");
+});
+
+test("mobile drawer closes from the close control and restores open button after animation", async () => {
+  window.localStorage.setItem("ebay-watchlist.sidebar.open", "1");
+  const user = userEvent.setup();
+  render(
+    <ThemeProvider>
+      <AppShell />
+    </ThemeProvider>
+  );
+
+  await user.click(screen.getByRole("button", { name: "Open filters" }));
+  const dialog = await screen.findByRole("dialog", { name: "Filters" });
+  expect(dialog).toHaveClass("translate-x-0", "opacity-100");
+
+  await user.click(screen.getByRole("button", { name: "Close filters" }));
+  expect(screen.getByRole("dialog", { name: "Filters" })).toHaveClass(
+    "-translate-x-6",
+    "opacity-0"
+  );
+  expect(screen.queryByRole("button", { name: "Open filters" })).not.toBeInTheDocument();
+
+  await act(async () => {
+    await new Promise((resolve) => window.setTimeout(resolve, 260));
+  });
+  expect(screen.getByRole("button", { name: "Open filters" })).toBeInTheDocument();
+});
+
+test("mobile drawer closes when clicking the backdrop", async () => {
+  window.localStorage.setItem("ebay-watchlist.sidebar.open", "1");
+  const user = userEvent.setup();
+  render(
+    <ThemeProvider>
+      <AppShell />
+    </ThemeProvider>
+  );
+
+  await user.click(screen.getByRole("button", { name: "Open filters" }));
+  expect(await screen.findByRole("dialog", { name: "Filters" })).toBeInTheDocument();
+
+  await user.click(screen.getByRole("presentation"));
+  expect(screen.getByRole("dialog", { name: "Filters" })).toHaveClass(
+    "-translate-x-6",
+    "opacity-0"
+  );
+
+  await act(async () => {
+    await new Promise((resolve) => window.setTimeout(resolve, 260));
+  });
+  expect(screen.queryByRole("dialog", { name: "Filters" })).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Open filters" })).toBeInTheDocument();
+});
+
+test("reopening filters after a pending close keeps drawer mounted", async () => {
+  window.localStorage.setItem("ebay-watchlist.sidebar.open", "1");
+  const user = userEvent.setup();
+  const { rerender } = render(
+    <ThemeProvider>
+      <AppShell sidebarEnabled />
+    </ThemeProvider>
+  );
+
+  await user.click(screen.getByRole("button", { name: "Open filters" }));
+  expect(await screen.findByRole("dialog", { name: "Filters" })).toBeInTheDocument();
+  await user.click(screen.getByRole("button", { name: "Close filters" }));
+
+  rerender(
+    <ThemeProvider>
+      <AppShell sidebarEnabled={false} />
+    </ThemeProvider>
+  );
+  rerender(
+    <ThemeProvider>
+      <AppShell sidebarEnabled />
+    </ThemeProvider>
+  );
+
+  await user.click(screen.getByRole("button", { name: "Open filters" }));
+  expect(await screen.findByRole("dialog", { name: "Filters" })).toBeInTheDocument();
+
+  await act(async () => {
+    await new Promise((resolve) => window.setTimeout(resolve, 300));
+  });
+  expect(screen.getByRole("dialog", { name: "Filters" })).toBeInTheDocument();
+});
+
+test("pending mobile close timer is cleaned up on unmount", async () => {
+  window.localStorage.setItem("ebay-watchlist.sidebar.open", "1");
+  const user = userEvent.setup();
+  const { unmount } = render(
+    <ThemeProvider>
+      <AppShell />
+    </ThemeProvider>
+  );
+
+  await user.click(screen.getByRole("button", { name: "Open filters" }));
+  expect(await screen.findByRole("dialog", { name: "Filters" })).toBeInTheDocument();
+  await user.click(screen.getByRole("button", { name: "Close filters" }));
+
+  unmount();
+  await act(async () => {
+    await new Promise((resolve) => window.setTimeout(resolve, 260));
+  });
 });
