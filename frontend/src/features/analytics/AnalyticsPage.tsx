@@ -82,49 +82,105 @@ function DistributionBarChart({
   rows: AnalyticsDistributionRow[];
   dense?: boolean;
 }) {
+  const [displayMode, setDisplayMode] = useState<"absolute" | "relative">("absolute");
   const maxCount = rows.reduce((currentMax, row) => Math.max(currentMax, row.count), 0);
+  const totalCount = rows.reduce((total, row) => total + row.count, 0);
+  const compactLabels = dense && rows.length > 12;
 
   return (
-    <article className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
-      <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">{title}</h2>
+    <article
+      data-testid={`distribution-card-${chartId}`}
+      className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none"
+    >
+      <header className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">{title}</h2>
+        <div
+          className="inline-flex overflow-hidden rounded-lg border border-slate-300 dark:border-slate-600"
+          role="group"
+          aria-label={`Value mode for ${title}`}
+        >
+          <button
+            type="button"
+            onClick={() => setDisplayMode("absolute")}
+            aria-label={`Show counts for ${title}`}
+            className={`px-2 py-1 text-xs font-medium transition ${
+              displayMode === "absolute"
+                ? "bg-slate-800 text-slate-100 dark:bg-slate-200 dark:text-slate-900"
+                : "bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+            }`}
+          >
+            Count
+          </button>
+          <button
+            type="button"
+            onClick={() => setDisplayMode("relative")}
+            aria-label={`Show percentages for ${title}`}
+            className={`border-l border-slate-300 px-2 py-1 text-xs font-medium transition dark:border-slate-600 ${
+              displayMode === "relative"
+                ? "bg-slate-800 text-slate-100 dark:bg-slate-200 dark:text-slate-900"
+                : "bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+            }`}
+          >
+            %
+          </button>
+        </div>
+      </header>
       {rows.length === 0 ? (
         <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">
           No distribution data available.
         </p>
       ) : (
-        <div className="mt-3 overflow-x-auto pb-2">
+        <div className="mt-3 -mx-1 overflow-x-auto px-1 pb-2">
           <ol
             data-testid={`distribution-bars-${chartId}`}
-            className={`flex min-w-max items-end gap-2 border-b border-slate-200 pb-2 dark:border-slate-700 ${
-              dense ? "h-56" : "h-64"
+            className={`flex min-w-max items-end gap-1 sm:gap-2 border-b border-slate-200 pb-2 dark:border-slate-700 ${
+              dense ? "h-48 sm:h-56" : "h-56 sm:h-64"
             }`}
           >
-          {rows.map((row) => (
+            {rows.map((row, index) => {
+              const absoluteRatio = maxCount > 0 ? row.count / maxCount : 0;
+              const relativeRatio = totalCount > 0 ? row.count / totalCount : 0;
+              const barRatio =
+                displayMode === "absolute" ? absoluteRatio : relativeRatio;
+              const barHeight =
+                displayMode === "absolute"
+                  ? row.count > 0
+                    ? Math.max(5, barRatio * 100)
+                    : 0
+                  : barRatio * 100;
+              const valueLabel =
+                displayMode === "absolute"
+                  ? String(row.count)
+                  : `${(relativeRatio * 100).toFixed(1)}%`;
+
+              return (
             <li
               key={row.label}
               className={`flex shrink-0 flex-col items-center justify-end gap-1 ${
-                dense ? "w-9" : "w-12"
+                dense ? "w-7 sm:w-9" : "w-9 sm:w-12"
               }`}
             >
               <span className="text-[11px] tabular-nums text-slate-500 dark:text-slate-400">
-                {row.count}
+                {valueLabel}
               </span>
-              <span className="relative flex h-44 w-full items-end overflow-hidden rounded-t-sm bg-slate-100 dark:bg-slate-800">
+              <span
+                className={`relative flex w-full items-end overflow-hidden rounded-t-sm bg-slate-100 dark:bg-slate-800 ${
+                  dense ? "h-36 sm:h-44" : "h-40 sm:h-48"
+                }`}
+              >
                 <span
                   className="block w-full rounded-t-sm bg-sky-600 dark:bg-sky-500"
                   style={{
-                    height:
-                      maxCount > 0
-                        ? `${Math.max(5, (row.count / maxCount) * 100)}%`
-                        : "0%",
+                    height: `${barHeight}%`,
                   }}
                 />
               </span>
               <span className="text-[11px] font-medium text-slate-700 dark:text-slate-300">
-                {row.label}
+                {compactLabels && index % 2 === 1 ? "" : row.label}
               </span>
             </li>
-          ))}
+              );
+            })}
           </ol>
         </div>
       )}

@@ -1,4 +1,5 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeEach, vi } from "vitest";
 
 import AnalyticsPage from "./AnalyticsPage";
@@ -66,6 +67,34 @@ test("analytics page renders snapshot metrics and rankings", async () => {
   expect(await screen.findByText("Feb")).toBeInTheDocument();
   expect(await screen.findByText("06:00")).toBeInTheDocument();
   expect(await screen.findByTestId("distribution-bars-posted-by-month")).toHaveClass("items-end");
+  expect(await screen.findByTestId("distribution-bars-posted-by-hour")).toHaveClass(
+    "h-48",
+    "sm:h-56"
+  );
   const metricCard = screen.getByText("Total Items").closest("article");
   expect(metricCard).toHaveClass("dark:bg-slate-900");
+});
+
+test("each distribution can switch between counts and percentages", async () => {
+  const user = userEvent.setup();
+  render(<AnalyticsPage />);
+
+  const monthChart = await screen.findByTestId("distribution-card-posted-by-month");
+  expect(within(monthChart).getByText("76")).toBeInTheDocument();
+
+  await user.click(
+    within(monthChart).getByRole("button", {
+      name: "Show percentages for Items Posted per Month",
+    })
+  );
+  expect(within(monthChart).getByText("63.3%")).toBeInTheDocument();
+
+  const weekdayChart = screen.getByTestId("distribution-card-posted-by-weekday");
+  expect(within(weekdayChart).queryByText("57.1%")).not.toBeInTheDocument();
+  await user.click(
+    within(weekdayChart).getByRole("button", {
+      name: "Show percentages for Items Posted by Day of Week",
+    })
+  );
+  expect(within(weekdayChart).getByText("17.5%")).toBeInTheDocument();
 });
