@@ -80,21 +80,21 @@ test("each distribution can switch between counts and percentages", async () => 
   render(<AnalyticsPage />);
 
   const monthChart = await screen.findByTestId("distribution-card-posted-by-month");
-  expect(within(monthChart).getByText("76")).toBeInTheDocument();
+  expect(within(monthChart).getByTitle("Feb: 76")).toBeInTheDocument();
 
   await user.click(
     within(monthChart).getByRole("button", {
       name: "Show percentages for Items Posted per Month",
     })
   );
-  expect(within(monthChart).getByText("63.3%")).toBeInTheDocument();
+  expect(within(monthChart).getByTitle("Feb: 63.3%")).toBeInTheDocument();
 
   const weekdayChart = screen.getByTestId("distribution-card-posted-by-weekday");
-  expect(within(weekdayChart).queryByText("57.1%")).not.toBeInTheDocument();
+  expect(within(weekdayChart).queryByTitle("Fri: 14.2%")).not.toBeInTheDocument();
   await user.click(
     within(weekdayChart).getByRole("button", {
       name: "Show percentages for Items Posted by Day of Week",
     })
   );
-  expect(within(weekdayChart).getByText("17.5%")).toBeInTheDocument();
+  expect(within(weekdayChart).getByTitle("Fri: 14.2%")).toBeInTheDocument();
 });

@@ -86,6 +86,30 @@ function DistributionBarChart({
   const maxCount = rows.reduce((currentMax, row) => Math.max(currentMax, row.count), 0);
   const totalCount = rows.reduce((total, row) => total + row.count, 0);
   const compactLabels = dense && rows.length > 12;
+  const axisStep =
+    displayMode === "relative"
+      ? 25
+      : Math.max(1, Math.ceil(maxCount / 4));
+  const axisMax = axisStep * 4;
+  const chartHeightClass = dense ? "h-48 sm:h-56" : "h-56 sm:h-64";
+  const axisTicks = [4, 3, 2, 1, 0].map((tickIndex) => axisStep * tickIndex);
+
+  function rowValue(row: AnalyticsDistributionRow): number {
+    if (displayMode === "absolute") {
+      return row.count;
+    }
+    if (totalCount === 0) {
+      return 0;
+    }
+    return (row.count / totalCount) * 100;
+  }
+
+  function rowValueLabel(row: AnalyticsDistributionRow): string {
+    if (displayMode === "absolute") {
+      return String(row.count);
+    }
+    return `${rowValue(row).toFixed(1)}%`;
+  }
 
   return (
     <article
@@ -130,58 +154,58 @@ function DistributionBarChart({
           No distribution data available.
         </p>
       ) : (
-        <div className="mt-3 -mx-1 overflow-x-auto px-1 pb-2">
-          <ol
-            data-testid={`distribution-bars-${chartId}`}
-            className={`flex min-w-max items-end gap-1 sm:gap-2 border-b border-slate-200 pb-2 dark:border-slate-700 ${
-              dense ? "h-48 sm:h-56" : "h-56 sm:h-64"
-            }`}
-          >
-            {rows.map((row, index) => {
-              const absoluteRatio = maxCount > 0 ? row.count / maxCount : 0;
-              const relativeRatio = totalCount > 0 ? row.count / totalCount : 0;
-              const barRatio =
-                displayMode === "absolute" ? absoluteRatio : relativeRatio;
-              const barHeight =
-                displayMode === "absolute"
-                  ? row.count > 0
-                    ? Math.max(5, barRatio * 100)
-                    : 0
-                  : barRatio * 100;
-              const valueLabel =
-                displayMode === "absolute"
-                  ? String(row.count)
-                  : `${(relativeRatio * 100).toFixed(1)}%`;
-
-              return (
-            <li
-              key={row.label}
-              className={`flex shrink-0 flex-col items-center justify-end gap-1 ${
-                dense ? "w-7 sm:w-9" : "w-9 sm:w-12"
-              }`}
+        <div className="mt-3 overflow-x-auto pb-2">
+          <div className="grid min-w-max grid-cols-[2.5rem_auto] gap-2">
+            <ol
+              aria-hidden="true"
+              className={`relative ${chartHeightClass} text-[10px] text-slate-500 dark:text-slate-400`}
             >
-              <span className="text-[11px] tabular-nums text-slate-500 dark:text-slate-400">
-                {valueLabel}
-              </span>
-              <span
-                className={`relative flex w-full items-end overflow-hidden rounded-t-sm bg-slate-100 dark:bg-slate-800 ${
-                  dense ? "h-36 sm:h-44" : "h-40 sm:h-48"
-                }`}
-              >
+              {axisTicks.map((tick, index) => (
+                <li
+                  key={`${chartId}-axis-${tick}-${index}`}
+                  className="absolute right-0 -translate-y-1/2"
+                  style={{ top: `${(index / 4) * 100}%` }}
+                >
+                  {displayMode === "absolute" ? tick : `${tick}%`}
+                </li>
+              ))}
+            </ol>
+
+            <ol
+              data-testid={`distribution-bars-${chartId}`}
+              className={`relative flex min-w-max items-end gap-1 border-b border-l border-slate-300 px-1 dark:border-slate-600 sm:gap-2 ${chartHeightClass}`}
+            >
+              {axisTicks.map((_, index) => (
                 <span
-                  className="block w-full rounded-t-sm bg-sky-600 dark:bg-sky-500"
-                  style={{
-                    height: `${barHeight}%`,
-                  }}
+                  key={`${chartId}-grid-${index}`}
+                  className="absolute left-0 right-0 border-t border-dashed border-slate-200 dark:border-slate-700"
+                  style={{ top: `${(index / 4) * 100}%` }}
                 />
-              </span>
-              <span className="text-[11px] font-medium text-slate-700 dark:text-slate-300">
-                {compactLabels && index % 2 === 1 ? "" : row.label}
-              </span>
-            </li>
-              );
-            })}
-          </ol>
+              ))}
+              {rows.map((row, index) => {
+                const value = rowValue(row);
+                const ratio = axisMax > 0 ? value / axisMax : 0;
+                const barHeight = value > 0 ? Math.max(3, ratio * 100) : 0;
+                return (
+                  <li
+                    key={row.label}
+                    className={`relative h-full shrink-0 ${dense ? "w-7 sm:w-9" : "w-9 sm:w-12"}`}
+                  >
+                    <span className="absolute inset-x-0 bottom-5 top-1 rounded-t-sm bg-slate-100 dark:bg-slate-800">
+                      <span
+                        title={`${row.label}: ${rowValueLabel(row)}`}
+                        className="absolute inset-x-0 bottom-0 block rounded-t-sm bg-sky-600 dark:bg-sky-500"
+                        style={{ height: `${barHeight}%` }}
+                      />
+                    </span>
+                    <span className="absolute bottom-0 left-1/2 w-full -translate-x-1/2 truncate text-center text-[10px] font-medium text-slate-700 dark:text-slate-300">
+                      {compactLabels && index % 2 === 1 ? "" : row.label}
+                    </span>
+                  </li>
+                );
+              })}
+            </ol>
+          </div>
         </div>
       )}
     </article>
@@ -265,20 +289,20 @@ export default function AnalyticsPage() {
             <RankingTable title="Top Categories" rows={snapshot.top_categories} />
           </div>
 
-          <div className="grid gap-4">
+          <div className="grid gap-4 xl:grid-cols-2">
             <DistributionBarChart
               chartId="posted-by-month"
               title="Items Posted per Month"
               rows={snapshot.distributions.posted_by_month}
             />
-          </div>
-
-          <div className="grid gap-4 xl:grid-cols-2">
             <DistributionBarChart
               chartId="posted-by-weekday"
               title="Items Posted by Day of Week"
               rows={snapshot.distributions.posted_by_weekday}
             />
+          </div>
+
+          <div className="grid gap-4">
             <DistributionBarChart
               chartId="posted-by-hour"
               title="Items Posted by Hour of Day (UTC)"
