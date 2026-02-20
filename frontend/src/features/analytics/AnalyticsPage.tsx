@@ -60,7 +60,7 @@ function MetricCard({
   value: number;
 }) {
   return (
-    <article className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
+    <article className="min-w-0 rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
       <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
         {label}
       </p>
@@ -79,7 +79,7 @@ function RankingTable({
   rows: AnalyticsRankingRow[];
 }) {
   return (
-    <article className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
+    <article className="min-w-0 rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
       <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">{title}</h2>
       <div className="mt-3 overflow-x-auto">
         <table className="min-w-full border-collapse text-sm">
@@ -161,7 +161,7 @@ function DistributionBarChart({
   return (
     <article
       data-testid={`distribution-card-${chartId}`}
-      className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none"
+      className="min-w-0 rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none"
     >
       <header className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">{title}</h2>
@@ -201,8 +201,8 @@ function DistributionBarChart({
           No distribution data available.
         </p>
       ) : (
-        <div className="mt-3 overflow-x-auto pb-2">
-          <div className="grid min-w-max grid-cols-[3.25rem_auto] gap-2">
+        <div className="mt-3 max-w-full overflow-x-auto pb-2">
+          <div className="grid w-max min-w-full grid-cols-[3.25rem_auto] gap-2">
             <ol
               data-testid={`distribution-axis-${chartId}`}
               aria-hidden="true"
@@ -316,7 +316,7 @@ export default function AnalyticsPage() {
   );
 
   return (
-    <section className="space-y-6">
+    <section className="min-w-0 space-y-6">
       <header>
         <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">Analytics</h1>
         <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
@@ -329,7 +329,7 @@ export default function AnalyticsPage() {
 
       {snapshot && (
         <>
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid min-w-0 gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {metrics.map((metric) => (
               <MetricCard
                 key={metric.key}
@@ -339,12 +339,12 @@ export default function AnalyticsPage() {
             ))}
           </div>
 
-          <div className="grid gap-4 xl:grid-cols-2">
+          <div className="grid min-w-0 gap-4 xl:grid-cols-2">
             <RankingTable title="Top Sellers" rows={snapshot.top_sellers} />
             <RankingTable title="Top Categories" rows={snapshot.top_categories} />
           </div>
 
-          <div className="grid gap-4 xl:grid-cols-2">
+          <div className="grid min-w-0 gap-4 xl:grid-cols-2">
             <DistributionBarChart
               chartId="posted-by-month"
               title="Items Posted per Month"
@@ -357,7 +357,7 @@ export default function AnalyticsPage() {
             />
           </div>
 
-          <div className="grid gap-4">
+          <div className="grid min-w-0 gap-4">
             <DistributionBarChart
               chartId="posted-by-hour"
               title="Items Posted by Hour of Day (UTC)"

@@ -66,6 +66,9 @@ test("analytics page renders snapshot metrics and rankings", async () => {
   expect(await screen.findByText("Items Posted by Hour of Day (UTC)")).toBeInTheDocument();
   expect(await screen.findByText("Feb")).toBeInTheDocument();
   expect(await screen.findByText("06:00")).toBeInTheDocument();
+  expect(await screen.findByTestId("distribution-card-posted-by-month")).toHaveClass("min-w-0");
+  expect(await screen.findByTestId("distribution-card-posted-by-weekday")).toHaveClass("min-w-0");
+  expect(await screen.findByTestId("distribution-card-posted-by-hour")).toHaveClass("min-w-0");
   expect(await screen.findByTestId("distribution-bars-posted-by-month")).toHaveClass("items-end");
   expect(await screen.findByTestId("distribution-bars-posted-by-hour")).toHaveClass(
     "h-48",
