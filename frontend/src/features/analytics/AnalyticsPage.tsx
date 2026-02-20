@@ -191,7 +191,7 @@ function DistributionBarChart({
                     key={row.label}
                     className={`relative h-full shrink-0 ${dense ? "w-7 sm:w-9" : "w-9 sm:w-12"}`}
                   >
-                    <span className="absolute inset-x-0 bottom-5 top-1 rounded-t-sm bg-slate-100 dark:bg-slate-800">
+                    <span className="absolute inset-x-0 bottom-5 top-1">
                       <span
                         title={`${row.label}: ${rowValueLabel(row)}`}
                         className="absolute inset-x-0 bottom-0 block rounded-t-sm bg-sky-600 dark:bg-sky-500"
