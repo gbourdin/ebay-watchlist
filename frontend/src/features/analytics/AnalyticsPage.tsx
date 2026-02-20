@@ -8,6 +8,42 @@ import {
   type AnalyticsRankingRow,
 } from "../items/api";
 
+function computeNiceAxisStep(maxValue: number, targetSteps = 4): number {
+  if (maxValue <= 0) {
+    return 1;
+  }
+
+  const rawStep = maxValue / targetSteps;
+  const magnitude = 10 ** Math.floor(Math.log10(rawStep));
+  const normalized = rawStep / magnitude;
+
+  if (normalized <= 1) {
+    return 1 * magnitude;
+  }
+  if (normalized <= 2) {
+    return 2 * magnitude;
+  }
+  if (normalized <= 5) {
+    return 5 * magnitude;
+  }
+  return 10 * magnitude;
+}
+
+function formatAxisTick(value: number, mode: "absolute" | "relative"): string {
+  if (mode === "relative") {
+    return `${Math.round(value)}%`;
+  }
+
+  if (value >= 1000) {
+    return new Intl.NumberFormat(undefined, {
+      notation: "compact",
+      maximumFractionDigits: 1,
+    }).format(value);
+  }
+
+  return String(Math.round(value));
+}
+
 function MetricCard({
   label,
   value,
@@ -89,7 +125,7 @@ function DistributionBarChart({
   const axisStep =
     displayMode === "relative"
       ? 25
-      : Math.max(1, Math.ceil(maxCount / 4));
+      : computeNiceAxisStep(maxCount, 4);
   const axisMax = axisStep * 4;
   const chartHeightClass = dense ? "h-48 sm:h-56" : "h-56 sm:h-64";
   const axisTicks = [4, 3, 2, 1, 0].map((tickIndex) => axisStep * tickIndex);
@@ -155,7 +191,7 @@ function DistributionBarChart({
         </p>
       ) : (
         <div className="mt-3 overflow-x-auto pb-2">
-          <div className="grid min-w-max grid-cols-[2.5rem_auto] gap-2">
+          <div className="grid min-w-max grid-cols-[3rem_auto] gap-2">
             <ol
               aria-hidden="true"
               className={`relative ${chartHeightClass} text-[10px] text-slate-500 dark:text-slate-400`}
@@ -166,7 +202,7 @@ function DistributionBarChart({
                   className="absolute right-0 -translate-y-1/2"
                   style={{ top: `${(index / 4) * 100}%` }}
                 >
-                  {displayMode === "absolute" ? tick : `${tick}%`}
+                  {formatAxisTick(tick, displayMode)}
                 </li>
               ))}
             </ol>
