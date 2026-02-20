@@ -122,6 +122,8 @@ function DistributionBarChart({
   const maxCount = rows.reduce((currentMax, row) => Math.max(currentMax, row.count), 0);
   const totalCount = rows.reduce((total, row) => total + row.count, 0);
   const compactLabels = dense && rows.length > 12;
+  const labelInterval = compactLabels ? 2 : 1;
+  const minPlotWidth = rows.length * (dense ? 28 : 36);
   const axisStep =
     displayMode === "relative"
       ? 25
@@ -191,7 +193,7 @@ function DistributionBarChart({
         </p>
       ) : (
         <div className="mt-3 overflow-x-auto pb-2">
-          <div className="grid min-w-max grid-cols-[3rem_auto] gap-2">
+          <div className="grid min-w-max grid-cols-[3.25rem_auto] gap-2">
             <ol
               aria-hidden="true"
               className={`relative ${chartHeightClass} text-[10px] text-slate-500 dark:text-slate-400`}
@@ -209,7 +211,8 @@ function DistributionBarChart({
 
             <ol
               data-testid={`distribution-bars-${chartId}`}
-              className={`relative flex min-w-max items-end gap-1 border-b border-l border-slate-300 px-1 dark:border-slate-600 sm:gap-2 ${chartHeightClass}`}
+              className={`relative flex w-full items-end gap-1 border-b border-l border-slate-300 px-1 dark:border-slate-600 sm:gap-2 ${chartHeightClass}`}
+              style={{ minWidth: `${minPlotWidth}px` }}
             >
               {axisTicks.map((_, index) => (
                 <span
@@ -225,7 +228,7 @@ function DistributionBarChart({
                 return (
                   <li
                     key={row.label}
-                    className={`relative h-full shrink-0 ${dense ? "w-7 sm:w-9" : "w-9 sm:w-12"}`}
+                    className="relative h-full flex-1"
                   >
                     <span className="absolute inset-x-0 bottom-5 top-1">
                       <span
@@ -235,7 +238,7 @@ function DistributionBarChart({
                       />
                     </span>
                     <span className="absolute bottom-0 left-1/2 w-full -translate-x-1/2 truncate text-center text-[10px] font-medium text-slate-700 dark:text-slate-300">
-                      {compactLabels && index % 2 === 1 ? "" : row.label}
+                      {index % labelInterval === 0 ? row.label : ""}
                     </span>
                   </li>
                 );
