@@ -137,7 +137,7 @@ describe("items api contract success paths", () => {
       top_sellers: [{ name: "alice", count: 4 }],
       top_categories: [{ name: "Guitars", count: 5 }],
       distributions: {
-        posted_by_month: [{ label: "2026-02", count: 10 }],
+        posted_by_month: [{ label: "Feb", count: 10 }],
         posted_by_weekday: [
           { label: "Mon", count: 2 },
           { label: "Tue", count: 1 },

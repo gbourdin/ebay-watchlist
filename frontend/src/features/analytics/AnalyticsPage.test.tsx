@@ -32,8 +32,8 @@ beforeEach(() => {
     ],
     distributions: {
       posted_by_month: [
-        { label: "2026-01", count: 44 },
-        { label: "2026-02", count: 76 },
+        { label: "Jan", count: 44 },
+        { label: "Feb", count: 76 },
       ],
       posted_by_weekday: [
         { label: "Mon", count: 12 },
@@ -63,8 +63,9 @@ test("analytics page renders snapshot metrics and rankings", async () => {
   expect(await screen.findByText("Items Posted per Month")).toBeInTheDocument();
   expect(await screen.findByText("Items Posted by Day of Week")).toBeInTheDocument();
   expect(await screen.findByText("Items Posted by Hour of Day (UTC)")).toBeInTheDocument();
-  expect(await screen.findByText("2026-02")).toBeInTheDocument();
+  expect(await screen.findByText("Feb")).toBeInTheDocument();
   expect(await screen.findByText("06:00")).toBeInTheDocument();
+  expect(await screen.findByTestId("distribution-bars-posted-by-month")).toHaveClass("items-end");
   const metricCard = screen.getByText("Total Items").closest("article");
   expect(metricCard).toHaveClass("dark:bg-slate-900");
 });

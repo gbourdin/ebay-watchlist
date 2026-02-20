@@ -66,7 +66,20 @@ def test_analytics_api_returns_empty_snapshot(temp_db):
     }
     assert payload["top_sellers"] == []
     assert payload["top_categories"] == []
-    assert payload["distributions"]["posted_by_month"] == []
+    assert payload["distributions"]["posted_by_month"] == [
+        {"label": "Jan", "count": 0},
+        {"label": "Feb", "count": 0},
+        {"label": "Mar", "count": 0},
+        {"label": "Apr", "count": 0},
+        {"label": "May", "count": 0},
+        {"label": "Jun", "count": 0},
+        {"label": "Jul", "count": 0},
+        {"label": "Aug", "count": 0},
+        {"label": "Sep", "count": 0},
+        {"label": "Oct", "count": 0},
+        {"label": "Nov", "count": 0},
+        {"label": "Dec", "count": 0},
+    ]
     assert payload["distributions"]["posted_by_weekday"] == [
         {"label": "Mon", "count": 0},
         {"label": "Tue", "count": 0},
@@ -145,7 +158,20 @@ def test_analytics_api_shows_metrics_and_rankings(temp_db):
         row["label"]: row["count"]
         for row in payload["distributions"]["posted_by_month"]
     }
-    assert month_counts == {"2026-01": 1, "2026-02": 3}
+    assert month_counts == {
+        "Jan": 1,
+        "Feb": 3,
+        "Mar": 0,
+        "Apr": 0,
+        "May": 0,
+        "Jun": 0,
+        "Jul": 0,
+        "Aug": 0,
+        "Sep": 0,
+        "Oct": 0,
+        "Nov": 0,
+        "Dec": 0,
+    }
 
     weekday_counts = {
         row["label"]: row["count"]

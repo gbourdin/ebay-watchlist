@@ -72,10 +72,12 @@ function RankingTable({
 }
 
 function DistributionBarChart({
+  chartId,
   title,
   rows,
   dense = false,
 }: {
+  chartId: string;
   title: string;
   rows: AnalyticsDistributionRow[];
   dense?: boolean;
@@ -90,30 +92,41 @@ function DistributionBarChart({
           No distribution data available.
         </p>
       ) : (
-        <ol className={`mt-3 space-y-2 ${dense ? "max-h-96 overflow-y-auto pr-1" : ""}`}>
+        <div className="mt-3 overflow-x-auto pb-2">
+          <ol
+            data-testid={`distribution-bars-${chartId}`}
+            className={`flex min-w-max items-end gap-2 border-b border-slate-200 pb-2 dark:border-slate-700 ${
+              dense ? "h-56" : "h-64"
+            }`}
+          >
           {rows.map((row) => (
             <li
               key={row.label}
-              className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 text-sm"
+              className={`flex shrink-0 flex-col items-center justify-end gap-1 ${
+                dense ? "w-9" : "w-12"
+              }`}
             >
-              <span className="font-medium text-slate-700 dark:text-slate-300">{row.label}</span>
-              <span className="h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
+              <span className="text-[11px] tabular-nums text-slate-500 dark:text-slate-400">
+                {row.count}
+              </span>
+              <span className="relative flex h-44 w-full items-end overflow-hidden rounded-t-sm bg-slate-100 dark:bg-slate-800">
                 <span
-                  className="block h-full rounded-full bg-sky-600 dark:bg-sky-500"
+                  className="block w-full rounded-t-sm bg-sky-600 dark:bg-sky-500"
                   style={{
-                    width:
+                    height:
                       maxCount > 0
-                        ? `${Math.max(4, (row.count / maxCount) * 100)}%`
+                        ? `${Math.max(5, (row.count / maxCount) * 100)}%`
                         : "0%",
                   }}
                 />
               </span>
-              <span className="tabular-nums text-slate-700 dark:text-slate-300">
-                {row.count}
+              <span className="text-[11px] font-medium text-slate-700 dark:text-slate-300">
+                {row.label}
               </span>
             </li>
           ))}
-        </ol>
+          </ol>
+        </div>
       )}
     </article>
   );
@@ -198,6 +211,7 @@ export default function AnalyticsPage() {
 
           <div className="grid gap-4">
             <DistributionBarChart
+              chartId="posted-by-month"
               title="Items Posted per Month"
               rows={snapshot.distributions.posted_by_month}
             />
@@ -205,10 +219,12 @@ export default function AnalyticsPage() {
 
           <div className="grid gap-4 xl:grid-cols-2">
             <DistributionBarChart
+              chartId="posted-by-weekday"
               title="Items Posted by Day of Week"
               rows={snapshot.distributions.posted_by_weekday}
             />
             <DistributionBarChart
+              chartId="posted-by-hour"
               title="Items Posted by Hour of Day (UTC)"
               rows={snapshot.distributions.posted_by_hour}
               dense
