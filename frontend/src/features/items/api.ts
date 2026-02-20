@@ -88,10 +88,22 @@ export interface AnalyticsRankingRow {
   count: number;
 }
 
+export interface AnalyticsDistributionRow {
+  label: string;
+  count: number;
+}
+
+export interface AnalyticsDistributions {
+  posted_by_month: AnalyticsDistributionRow[];
+  posted_by_weekday: AnalyticsDistributionRow[];
+  posted_by_hour: AnalyticsDistributionRow[];
+}
+
 export interface AnalyticsResponse {
   metrics: AnalyticsMetricSnapshot;
   top_sellers: AnalyticsRankingRow[];
   top_categories: AnalyticsRankingRow[];
+  distributions: AnalyticsDistributions;
 }
 
 export async function fetchItems(queryString: string): Promise<ItemsResponse> {

@@ -437,6 +437,34 @@ class ItemRepository:
             for row in top_category_rows
         ]
 
+        month_counts: dict[str, int] = {}
+        weekday_counts = [0] * 7
+        hour_counts = [0] * 24
+
+        for item in Item.select(Item.creation_date):
+            created_at = item.creation_date
+            if created_at is None:
+                continue
+            month_label = created_at.strftime("%Y-%m")
+            month_counts[month_label] = month_counts.get(month_label, 0) + 1
+            weekday_counts[created_at.weekday()] += 1
+            hour_counts[created_at.hour] += 1
+
+        posted_by_month = sorted(month_counts.items(), key=lambda row: row[0])
+        posted_by_weekday = [
+            ("Mon", weekday_counts[0]),
+            ("Tue", weekday_counts[1]),
+            ("Wed", weekday_counts[2]),
+            ("Thu", weekday_counts[3]),
+            ("Fri", weekday_counts[4]),
+            ("Sat", weekday_counts[5]),
+            ("Sun", weekday_counts[6]),
+        ]
+        posted_by_hour = [
+            (f"{hour:02d}:00", hour_counts[hour])
+            for hour in range(24)
+        ]
+
         return {
             "total_items": total_items,
             "active_items": active_items,
@@ -446,6 +474,9 @@ class ItemRepository:
             "favorite_items": favorite_items,
             "top_sellers": top_sellers,
             "top_categories": top_categories,
+            "posted_by_month": posted_by_month,
+            "posted_by_weekday": posted_by_weekday,
+            "posted_by_hour": posted_by_hour,
         }
 
 

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import {
   fetchAnalyticsSnapshot,
+  type AnalyticsDistributionRow,
   type AnalyticsResponse,
   type AnalyticsMetricSnapshot,
   type AnalyticsRankingRow,
@@ -66,6 +67,54 @@ function RankingTable({
           </tbody>
         </table>
       </div>
+    </article>
+  );
+}
+
+function DistributionBarChart({
+  title,
+  rows,
+  dense = false,
+}: {
+  title: string;
+  rows: AnalyticsDistributionRow[];
+  dense?: boolean;
+}) {
+  const maxCount = rows.reduce((currentMax, row) => Math.max(currentMax, row.count), 0);
+
+  return (
+    <article className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
+      <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">{title}</h2>
+      {rows.length === 0 ? (
+        <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">
+          No distribution data available.
+        </p>
+      ) : (
+        <ol className={`mt-3 space-y-2 ${dense ? "max-h-96 overflow-y-auto pr-1" : ""}`}>
+          {rows.map((row) => (
+            <li
+              key={row.label}
+              className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 text-sm"
+            >
+              <span className="font-medium text-slate-700 dark:text-slate-300">{row.label}</span>
+              <span className="h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
+                <span
+                  className="block h-full rounded-full bg-sky-600 dark:bg-sky-500"
+                  style={{
+                    width:
+                      maxCount > 0
+                        ? `${Math.max(4, (row.count / maxCount) * 100)}%`
+                        : "0%",
+                  }}
+                />
+              </span>
+              <span className="tabular-nums text-slate-700 dark:text-slate-300">
+                {row.count}
+              </span>
+            </li>
+          ))}
+        </ol>
+      )}
     </article>
   );
 }
@@ -145,6 +194,25 @@ export default function AnalyticsPage() {
           <div className="grid gap-4 xl:grid-cols-2">
             <RankingTable title="Top Sellers" rows={snapshot.top_sellers} />
             <RankingTable title="Top Categories" rows={snapshot.top_categories} />
+          </div>
+
+          <div className="grid gap-4">
+            <DistributionBarChart
+              title="Items Posted per Month"
+              rows={snapshot.distributions.posted_by_month}
+            />
+          </div>
+
+          <div className="grid gap-4 xl:grid-cols-2">
+            <DistributionBarChart
+              title="Items Posted by Day of Week"
+              rows={snapshot.distributions.posted_by_weekday}
+            />
+            <DistributionBarChart
+              title="Items Posted by Hour of Day (UTC)"
+              rows={snapshot.distributions.posted_by_hour}
+              dense
+            />
           </div>
         </>
       )}

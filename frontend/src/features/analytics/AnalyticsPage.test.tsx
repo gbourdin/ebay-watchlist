@@ -30,6 +30,25 @@ beforeEach(() => {
       { name: "Electric Guitars", count: 33 },
       { name: "Laptops", count: 12 },
     ],
+    distributions: {
+      posted_by_month: [
+        { label: "2026-01", count: 44 },
+        { label: "2026-02", count: 76 },
+      ],
+      posted_by_weekday: [
+        { label: "Mon", count: 12 },
+        { label: "Tue", count: 18 },
+        { label: "Wed", count: 20 },
+        { label: "Thu", count: 15 },
+        { label: "Fri", count: 17 },
+        { label: "Sat", count: 21 },
+        { label: "Sun", count: 17 },
+      ],
+      posted_by_hour: Array.from({ length: 24 }, (_, hour) => ({
+        label: `${String(hour).padStart(2, "0")}:00`,
+        count: hour % 3 === 0 ? 7 : 3,
+      })),
+    },
   });
 });
 
@@ -41,6 +60,11 @@ test("analytics page renders snapshot metrics and rankings", async () => {
   expect(await screen.findByText("Top Sellers")).toBeInTheDocument();
   expect(await screen.findByText("alice")).toBeInTheDocument();
   expect(await screen.findByText("Electric Guitars")).toBeInTheDocument();
+  expect(await screen.findByText("Items Posted per Month")).toBeInTheDocument();
+  expect(await screen.findByText("Items Posted by Day of Week")).toBeInTheDocument();
+  expect(await screen.findByText("Items Posted by Hour of Day (UTC)")).toBeInTheDocument();
+  expect(await screen.findByText("2026-02")).toBeInTheDocument();
+  expect(await screen.findByText("06:00")).toBeInTheDocument();
   const metricCard = screen.getByText("Total Items").closest("article");
   expect(metricCard).toHaveClass("dark:bg-slate-900");
 });

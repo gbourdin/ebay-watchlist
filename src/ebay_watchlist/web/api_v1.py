@@ -629,5 +629,19 @@ def analytics_snapshot():
                 {"name": str(name), "count": int(count)}
                 for name, count in top_categories
             ],
+            "distributions": {
+                "posted_by_month": [
+                    {"label": str(label), "count": int(count)}
+                    for label, count in _snapshot_ranking(snapshot, "posted_by_month")
+                ],
+                "posted_by_weekday": [
+                    {"label": str(label), "count": int(count)}
+                    for label, count in _snapshot_ranking(snapshot, "posted_by_weekday")
+                ],
+                "posted_by_hour": [
+                    {"label": str(label), "count": int(count)}
+                    for label, count in _snapshot_ranking(snapshot, "posted_by_hour")
+                ],
+            },
         }
     )
