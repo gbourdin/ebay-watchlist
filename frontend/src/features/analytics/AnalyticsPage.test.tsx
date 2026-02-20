@@ -88,6 +88,15 @@ test("each distribution can switch between counts and percentages", async () => 
     })
   );
   expect(within(monthChart).getByTitle("Feb: 63.3%")).toBeInTheDocument();
+  expect(within(monthChart).queryByText("100%")).not.toBeInTheDocument();
+
+  const monthAxis = within(monthChart).getByTestId("distribution-axis-posted-by-month");
+  const monthAxisTicks = Array.from(monthAxis.querySelectorAll("li"));
+  const topAxisValue = Number.parseFloat(monthAxisTicks[0].textContent ?? "0");
+  expect(topAxisValue).toBeGreaterThanOrEqual(63.3);
+  expect(topAxisValue).toBeLessThan(100);
+  expect(monthAxisTicks[0]).toHaveClass("translate-y-0");
+  expect(monthAxisTicks[monthAxisTicks.length - 1]).toHaveClass("-translate-y-full");
 
   const weekdayChart = screen.getByTestId("distribution-card-posted-by-weekday");
   expect(within(weekdayChart).queryByTitle("Fri: 14.2%")).not.toBeInTheDocument();

@@ -8,25 +8,33 @@ import {
   type AnalyticsRankingRow,
 } from "../items/api";
 
-function computeNiceAxisStep(maxValue: number, targetSteps = 4): number {
+function computeNiceAxisStep(maxValue: number, maxTicks = 7): number {
   if (maxValue <= 0) {
     return 1;
   }
 
-  const rawStep = maxValue / targetSteps;
+  const rawStep = maxValue / Math.max(1, maxTicks - 1);
   const magnitude = 10 ** Math.floor(Math.log10(rawStep));
   const normalized = rawStep / magnitude;
 
-  if (normalized <= 1) {
+  if (normalized < 1.5) {
     return 1 * magnitude;
   }
-  if (normalized <= 2) {
+  if (normalized < 3) {
     return 2 * magnitude;
   }
-  if (normalized <= 5) {
+  if (normalized < 7) {
     return 5 * magnitude;
   }
   return 10 * magnitude;
+}
+
+function buildAxisTicks(maxValue: number): number[] {
+  const axisStep = computeNiceAxisStep(maxValue, 7);
+  const axisMax = Math.max(axisStep, Math.ceil(maxValue / axisStep) * axisStep);
+  const tickCount = Math.floor(axisMax / axisStep) + 1;
+
+  return Array.from({ length: tickCount }, (_, tickIndex) => axisMax - tickIndex * axisStep);
 }
 
 function formatAxisTick(value: number, mode: "absolute" | "relative"): string {
@@ -121,16 +129,17 @@ function DistributionBarChart({
   const [displayMode, setDisplayMode] = useState<"absolute" | "relative">("absolute");
   const maxCount = rows.reduce((currentMax, row) => Math.max(currentMax, row.count), 0);
   const totalCount = rows.reduce((total, row) => total + row.count, 0);
+  const maxRelativeValue = totalCount > 0
+    ? rows.reduce((currentMax, row) => Math.max(currentMax, (row.count / totalCount) * 100), 0)
+    : 0;
   const compactLabels = dense && rows.length > 12;
   const labelInterval = compactLabels ? 2 : 1;
   const minPlotWidth = rows.length * (dense ? 28 : 36);
-  const axisStep =
-    displayMode === "relative"
-      ? 25
-      : computeNiceAxisStep(maxCount, 4);
-  const axisMax = axisStep * 4;
+  const axisTicks = buildAxisTicks(displayMode === "relative" ? maxRelativeValue : maxCount);
+  const axisMax = axisTicks[0] ?? 1;
+  const axisTickDivisor = Math.max(1, axisTicks.length - 1);
+  const axisLabelInterval = axisTicks.length > 7 ? 2 : 1;
   const chartHeightClass = dense ? "h-48 sm:h-56" : "h-56 sm:h-64";
-  const axisTicks = [4, 3, 2, 1, 0].map((tickIndex) => axisStep * tickIndex);
 
   function rowValue(row: AnalyticsDistributionRow): number {
     if (displayMode === "absolute") {
@@ -195,16 +204,21 @@ function DistributionBarChart({
         <div className="mt-3 overflow-x-auto pb-2">
           <div className="grid min-w-max grid-cols-[3.25rem_auto] gap-2">
             <ol
+              data-testid={`distribution-axis-${chartId}`}
               aria-hidden="true"
               className={`relative ${chartHeightClass} text-[10px] text-slate-500 dark:text-slate-400`}
             >
               {axisTicks.map((tick, index) => (
                 <li
                   key={`${chartId}-axis-${tick}-${index}`}
-                  className="absolute right-0 -translate-y-1/2"
-                  style={{ top: `${(index / 4) * 100}%` }}
+                  className={`absolute right-0 ${
+                    index === 0 ? "translate-y-0" : index === axisTicks.length - 1 ? "-translate-y-full" : "-translate-y-1/2"
+                  }`}
+                  style={{ top: `${(index / axisTickDivisor) * 100}%` }}
                 >
-                  {formatAxisTick(tick, displayMode)}
+                  {index % axisLabelInterval === 0 || index === axisTicks.length - 1
+                    ? formatAxisTick(tick, displayMode)
+                    : ""}
                 </li>
               ))}
             </ol>
@@ -217,8 +231,10 @@ function DistributionBarChart({
               {axisTicks.map((_, index) => (
                 <span
                   key={`${chartId}-grid-${index}`}
-                  className="absolute left-0 right-0 border-t border-dashed border-slate-200 dark:border-slate-700"
-                  style={{ top: `${(index / 4) * 100}%` }}
+                  className={`absolute left-0 right-0 border-t border-dashed border-slate-200 dark:border-slate-700 ${
+                    index === axisTicks.length - 1 ? "border-slate-300 dark:border-slate-600" : ""
+                  }`}
+                  style={{ top: `${(index / axisTickDivisor) * 100}%` }}
                 />
               ))}
               {rows.map((row, index) => {
