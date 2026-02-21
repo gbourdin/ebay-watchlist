@@ -21,8 +21,12 @@ class ItemRepository:
         search_query: str | None = None,
         include_hidden: bool = False,
         include_favorites_only: bool = False,
+        include_ended: bool = False,
+        only_last_24h: bool = False,
+        reference_time: datetime | None = None,
     ):
         query = Item.select()
+        now = reference_time or datetime.now()
 
         if seller_names:
             query = query.where(Item.seller_name.in_(seller_names))
@@ -48,6 +52,12 @@ class ItemRepository:
             )
             query = query.where(Item.item_id.not_in(hidden_item_ids))
 
+        if not include_ended:
+            query = query.where(Item.end_date >= now)
+
+        if only_last_24h:
+            query = query.where(Item.creation_date >= now - timedelta(hours=24))
+
         return query
 
     @staticmethod
@@ -59,6 +69,9 @@ class ItemRepository:
         sort: str = "newest",
         include_hidden: bool = False,
         include_favorites_only: bool = False,
+        include_ended: bool = False,
+        only_last_24h: bool = False,
+        reference_time: datetime | None = None,
         limit: int = 50,
         offset: int = 0,
     ) -> list[Item]:
@@ -69,15 +82,23 @@ class ItemRepository:
             search_query=search_query,
             include_hidden=include_hidden,
             include_favorites_only=include_favorites_only,
+            include_ended=include_ended,
+            only_last_24h=only_last_24h,
+            reference_time=reference_time,
         )
 
         if sort in {"ending_soon", "ending_soon_active"}:
-            query = query.where(Item.end_date >= datetime.now())
             query = query.order_by(Item.end_date.asc())
         elif sort == "price_low":
-            query = query.order_by(Item.current_bid_price.asc())
+            query = query.order_by(
+                fn.COALESCE(Item.current_bid_price, Item.price).asc(),
+                Item.creation_date.desc(),
+            )
         elif sort == "price_high":
-            query = query.order_by(Item.current_bid_price.desc())
+            query = query.order_by(
+                fn.COALESCE(Item.current_bid_price, Item.price).desc(),
+                Item.creation_date.desc(),
+            )
         elif sort == "bids_desc":
             query = query.order_by(Item.bid_count.desc(), Item.creation_date.desc())
         else:
@@ -94,6 +115,9 @@ class ItemRepository:
         sort: str = "newest",
         include_hidden: bool = False,
         include_favorites_only: bool = False,
+        include_ended: bool = False,
+        only_last_24h: bool = False,
+        reference_time: datetime | None = None,
     ) -> int:
         query = ItemRepository._build_filtered_query(
             seller_names=seller_names,
@@ -102,9 +126,10 @@ class ItemRepository:
             search_query=search_query,
             include_hidden=include_hidden,
             include_favorites_only=include_favorites_only,
+            include_ended=include_ended,
+            only_last_24h=only_last_24h,
+            reference_time=reference_time,
         )
-        if sort in {"ending_soon", "ending_soon_active"}:
-            query = query.where(Item.end_date >= datetime.now())
         return query.count()
 
     @staticmethod
@@ -122,11 +147,14 @@ class ItemRepository:
         if not normalized:
             return []
 
-        return [
-            seller_name
-            for seller_name in ItemRepository.get_distinct_seller_names()
-            if normalized in seller_name.lower()
-        ][:limit]
+        seller_query = (
+            Item.select(Item.seller_name)
+            .where(fn.LOWER(Item.seller_name).contains(normalized))
+            .distinct()
+            .order_by(Item.seller_name.asc())
+            .limit(limit)
+        )
+        return [str(item.seller_name) for item in seller_query if item.seller_name]
 
     @staticmethod
     def get_distinct_category_names(
@@ -148,13 +176,17 @@ class ItemRepository:
         if not normalized:
             return []
 
-        return [
-            category_name
-            for category_name in ItemRepository.get_distinct_category_names(
-                scraped_category_ids=scraped_category_ids
+        category_query = Item.select(Item.category_name).where(
+            fn.LOWER(Item.category_name).contains(normalized)
+        )
+        if scraped_category_ids:
+            category_query = category_query.where(
+                Item.scraped_category_id.in_(scraped_category_ids)
             )
-            if normalized in category_name.lower()
-        ][:limit]
+        category_query = (
+            category_query.distinct().order_by(Item.category_name.asc()).limit(limit)
+        )
+        return [str(item.category_name) for item in category_query if item.category_name]
 
     @staticmethod
     def get_distinct_scraped_category_ids() -> list[int]:

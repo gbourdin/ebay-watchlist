@@ -3,12 +3,17 @@ import { useEffect, useMemo, useState } from "react";
 import {
   fetchCategorySuggestions,
   fetchSellerSuggestions,
+  fetchWatchlist,
   type Suggestion,
 } from "../api";
 import type { ItemsQueryState } from "../query-state";
 import type { UseItemsQueryResult } from "../useItemsQuery";
 
-const MAIN_CATEGORY_OPTIONS = ["Musical Instruments", "Computers", "Videogames"];
+const DEFAULT_MAIN_CATEGORY_OPTIONS = [
+  "Musical Instruments",
+  "Computers",
+  "Videogames",
+];
 
 type MultiField = "seller" | "main_category" | "category";
 
@@ -117,34 +122,92 @@ export default function FiltersSidebar({ itemsQuery }: FiltersSidebarProps) {
   const [sellerInput, setSellerInput] = useState("");
   const [mainCategoryInput, setMainCategoryInput] = useState("");
   const [categoryInput, setCategoryInput] = useState("");
+  const [searchInput, setSearchInput] = useState(query.q);
 
   const [sellerSuggestions, setSellerSuggestions] = useState<Suggestion[]>([]);
   const [categorySuggestions, setCategorySuggestions] = useState<Suggestion[]>([]);
+  const [mainCategoryOptions, setMainCategoryOptions] = useState<string[]>(
+    DEFAULT_MAIN_CATEGORY_OPTIONS
+  );
+  const [sellerSuggestionsLoading, setSellerSuggestionsLoading] = useState(false);
+  const [sellerSuggestionsError, setSellerSuggestionsError] = useState(false);
+  const [categorySuggestionsLoading, setCategorySuggestionsLoading] = useState(false);
+  const [categorySuggestionsError, setCategorySuggestionsError] = useState(false);
 
   const mainCategorySuggestions = useMemo(() => {
     if (!mainCategoryInput.trim()) {
-      return MAIN_CATEGORY_OPTIONS;
+      return mainCategoryOptions;
     }
 
     const normalized = mainCategoryInput.toLowerCase();
-    return MAIN_CATEGORY_OPTIONS.filter((option) =>
+    return mainCategoryOptions.filter((option) =>
       option.toLowerCase().includes(normalized)
     );
-  }, [mainCategoryInput]);
+  }, [mainCategoryInput, mainCategoryOptions]);
+
+  useEffect(() => {
+    setSearchInput(query.q);
+  }, [query.q]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadWatchlist() {
+      try {
+        const watchlist = await fetchWatchlist();
+        if (cancelled) {
+          return;
+        }
+
+        const options = watchlist.main_category_options.filter((option) => option.trim());
+        if (options.length > 0) {
+          setMainCategoryOptions(options);
+        }
+      } catch {
+        if (!cancelled) {
+          setMainCategoryOptions(DEFAULT_MAIN_CATEGORY_OPTIONS);
+        }
+      }
+    }
+
+    void loadWatchlist();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
 
     if (sellerInput.trim().length < 2) {
       setSellerSuggestions([]);
+      setSellerSuggestionsLoading(false);
+      setSellerSuggestionsError(false);
       return;
     }
 
-    void fetchSellerSuggestions(sellerInput).then((result) => {
-      if (!cancelled) {
-        setSellerSuggestions(result.items);
+    async function loadSellerSuggestions() {
+      setSellerSuggestionsLoading(true);
+      setSellerSuggestionsError(false);
+      try {
+        const result = await fetchSellerSuggestions(sellerInput);
+        if (!cancelled) {
+          setSellerSuggestions(result.items);
+        }
+      } catch {
+        if (!cancelled) {
+          setSellerSuggestions([]);
+          setSellerSuggestionsError(true);
+        }
+      } finally {
+        if (!cancelled) {
+          setSellerSuggestionsLoading(false);
+        }
       }
-    });
+    }
+
+    void loadSellerSuggestions();
 
     return () => {
       cancelled = true;
@@ -156,14 +219,32 @@ export default function FiltersSidebar({ itemsQuery }: FiltersSidebarProps) {
 
     if (categoryInput.trim().length < 2) {
       setCategorySuggestions([]);
+      setCategorySuggestionsLoading(false);
+      setCategorySuggestionsError(false);
       return;
     }
 
-    void fetchCategorySuggestions(categoryInput, query.main_category).then((result) => {
-      if (!cancelled) {
-        setCategorySuggestions(result.items);
+    async function loadCategorySuggestions() {
+      setCategorySuggestionsLoading(true);
+      setCategorySuggestionsError(false);
+      try {
+        const result = await fetchCategorySuggestions(categoryInput, query.main_category);
+        if (!cancelled) {
+          setCategorySuggestions(result.items);
+        }
+      } catch {
+        if (!cancelled) {
+          setCategorySuggestions([]);
+          setCategorySuggestionsError(true);
+        }
+      } finally {
+        if (!cancelled) {
+          setCategorySuggestionsLoading(false);
+        }
       }
-    });
+    }
+
+    void loadCategorySuggestions();
 
     return () => {
       cancelled = true;
@@ -231,6 +312,12 @@ export default function FiltersSidebar({ itemsQuery }: FiltersSidebarProps) {
           className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-400"
         />
         <SuggestionsList id="seller-suggestions" suggestions={sellerSuggestions} />
+        {sellerSuggestionsLoading && (
+          <p className="text-xs text-slate-400">Loading seller suggestions...</p>
+        )}
+        {sellerSuggestionsError && (
+          <p className="text-xs text-red-300">Could not load seller suggestions.</p>
+        )}
       </section>
 
       <section className="space-y-2">
@@ -251,12 +338,12 @@ export default function FiltersSidebar({ itemsQuery }: FiltersSidebarProps) {
           onChange={(event) => {
             const nextValue = event.target.value;
             setMainCategoryInput(nextValue);
-            if (tryAddIfMatches("main_category", nextValue, MAIN_CATEGORY_OPTIONS)) {
+            if (tryAddIfMatches("main_category", nextValue, mainCategoryOptions)) {
               setMainCategoryInput("");
             }
           }}
           onBlur={() => {
-            if (tryAddIfMatches("main_category", mainCategoryInput, MAIN_CATEGORY_OPTIONS)) {
+            if (tryAddIfMatches("main_category", mainCategoryInput, mainCategoryOptions)) {
               setMainCategoryInput("");
             }
           }}
@@ -314,6 +401,12 @@ export default function FiltersSidebar({ itemsQuery }: FiltersSidebarProps) {
           className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-400"
         />
         <SuggestionsList id="category-suggestions" suggestions={categorySuggestions} />
+        {categorySuggestionsLoading && (
+          <p className="text-xs text-slate-400">Loading category suggestions...</p>
+        )}
+        {categorySuggestionsError && (
+          <p className="text-xs text-red-300">Could not load category suggestions.</p>
+        )}
       </section>
 
       <section className="space-y-2">
@@ -325,8 +418,14 @@ export default function FiltersSidebar({ itemsQuery }: FiltersSidebarProps) {
         </label>
         <input
           id="filter-search"
-          value={query.q}
-          onChange={(event) => updateQuery({ q: event.target.value, page: 1 })}
+          value={searchInput}
+          onChange={(event) => setSearchInput(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              updateQuery({ q: searchInput, page: 1 });
+            }
+          }}
           placeholder="title contains..."
           className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-400"
         />
@@ -341,6 +440,24 @@ export default function FiltersSidebar({ itemsQuery }: FiltersSidebarProps) {
             onChange={(event) => updateQuery({ show_hidden: event.target.checked, page: 1 })}
           />
           Show hidden items
+        </label>
+        <label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            className="accent-amber-400"
+            checked={query.show_ended}
+            onChange={(event) => updateQuery({ show_ended: event.target.checked, page: 1 })}
+          />
+          Show ended items
+        </label>
+        <label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            className="accent-amber-400"
+            checked={query.last_24h}
+            onChange={(event) => updateQuery({ last_24h: event.target.checked, page: 1 })}
+          />
+          Added in last 24 hours
         </label>
         <label className="flex items-center gap-2">
           <input

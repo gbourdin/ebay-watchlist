@@ -7,6 +7,7 @@ import AppShell from "../../../components/layout/AppShell";
 import ThemeProvider from "../../../theme/ThemeProvider";
 import { fetchCategorySuggestions } from "../api";
 import { fetchSellerSuggestions } from "../api";
+import { fetchWatchlist } from "../api";
 import { parseQueryState } from "../query-state";
 import type { ItemsQueryState } from "../query-state";
 import type { UseItemsQueryResult } from "../useItemsQuery";
@@ -18,11 +19,17 @@ vi.mock("../api", async (importOriginal) => {
     ...actual,
     fetchSellerSuggestions: vi.fn().mockResolvedValue({ items: [] }),
     fetchCategorySuggestions: vi.fn().mockResolvedValue({ items: [] }),
+    fetchWatchlist: vi.fn().mockResolvedValue({
+      sellers: [],
+      categories: [],
+      main_category_options: ["Musical Instruments", "Computers", "Videogames"],
+    }),
   };
 });
 
 const mockedFetchSellerSuggestions = vi.mocked(fetchSellerSuggestions);
 const mockedFetchCategorySuggestions = vi.mocked(fetchCategorySuggestions);
+const mockedFetchWatchlist = vi.mocked(fetchWatchlist);
 
 beforeEach(() => {
   window.localStorage.clear();
@@ -40,6 +47,12 @@ beforeEach(() => {
   mockedFetchSellerSuggestions.mockResolvedValue({ items: [] });
   mockedFetchCategorySuggestions.mockReset();
   mockedFetchCategorySuggestions.mockResolvedValue({ items: [] });
+  mockedFetchWatchlist.mockReset();
+  mockedFetchWatchlist.mockResolvedValue({
+    sellers: [],
+    categories: [],
+    main_category_options: ["Musical Instruments", "Computers", "Videogames"],
+  });
 });
 
 function createItemsQueryMock(): UseItemsQueryResult {
@@ -50,6 +63,8 @@ function createItemsQueryMock(): UseItemsQueryResult {
     q: "",
     favorite: false,
     show_hidden: false,
+    show_ended: false,
+    last_24h: false,
     sort: "newest" as const,
     view: "table" as const,
     page: 1,
@@ -77,6 +92,16 @@ function createItemsQueryMock(): UseItemsQueryResult {
   return itemsQuery;
 }
 
+function createDeferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((innerResolve, innerReject) => {
+    resolve = innerResolve;
+    reject = innerReject;
+  });
+  return { promise, resolve, reject };
+}
+
 function renderFiltersSidebarHarness() {
   const latest = { query: null as ItemsQueryState | null };
 
@@ -88,6 +113,8 @@ function renderFiltersSidebarHarness() {
       q: "",
       favorite: false,
       show_hidden: false,
+      show_ended: false,
+      last_24h: false,
       sort: "newest",
       view: "table",
       page: 1,
@@ -128,6 +155,8 @@ test("filters apply immediately and update query state", async () => {
   const harness = renderFiltersSidebarHarness();
 
   await user.type(screen.getByLabelText("Search"), "tele");
+  expect(harness.getQuery()?.q).toBe("");
+  await user.keyboard("{Enter}");
   expect(harness.getQuery()?.q).toBe("tele");
 
   await user.type(screen.getByLabelText("Sellers"), "alice{enter}");
@@ -137,7 +166,7 @@ test("filters apply immediately and update query state", async () => {
   expect(harness.getQuery()?.favorite).toBe(true);
 });
 
-test("mobile layout starts with results visible and filters drawer closed", () => {
+test("mobile layout starts with results visible and filters drawer closed", async () => {
   const itemsQuery = createItemsQueryMock();
 
   render(
@@ -148,6 +177,7 @@ test("mobile layout starts with results visible and filters drawer closed", () =
     </ThemeProvider>
   );
 
+  await waitFor(() => expect(mockedFetchWatchlist).toHaveBeenCalled());
   expect(screen.getByTestId("results-main")).toBeInTheDocument();
   expect(screen.queryByRole("dialog", { name: "Filters" })).not.toBeInTheDocument();
 });
@@ -171,9 +201,23 @@ test("seller input auto-adds on blur when value matches suggestion", async () =>
   await waitFor(() => expect(harness.getQuery()?.seller).toContain("alice_shop"));
 });
 
+test("seller suggestions show loading and error states", async () => {
+  const user = userEvent.setup();
+  const deferred = createDeferred<{ items: { value: string; label: string }[] }>();
+  mockedFetchSellerSuggestions.mockImplementation(() => deferred.promise);
+
+  renderFiltersSidebarHarness();
+
+  await user.type(screen.getByLabelText("Sellers"), "al");
+  expect(await screen.findByText("Loading seller suggestions...")).toBeInTheDocument();
+  deferred.reject(new Error("network"));
+  expect(await screen.findByText("Could not load seller suggestions.")).toBeInTheDocument();
+});
+
 test("main category supports exact-match add and removable tag pills", async () => {
   const user = userEvent.setup();
   const harness = renderFiltersSidebarHarness();
+  await waitFor(() => expect(mockedFetchWatchlist).toHaveBeenCalled());
 
   await user.type(screen.getByLabelText("Main Categories"), "musical instruments");
   await user.tab();
@@ -181,6 +225,22 @@ test("main category supports exact-match add and removable tag pills", async () 
 
   await user.click(screen.getByRole("button", { name: "Musical Instruments ×" }));
   expect(harness.getQuery()?.main_category).toEqual([]);
+});
+
+test("main category options are sourced from API response", async () => {
+  mockedFetchWatchlist.mockResolvedValueOnce({
+    sellers: [],
+    categories: [],
+    main_category_options: ["Photography"],
+  });
+
+  const user = userEvent.setup();
+  const harness = renderFiltersSidebarHarness();
+  await waitFor(() => expect(mockedFetchWatchlist).toHaveBeenCalled());
+
+  await user.type(screen.getByLabelText("Main Categories"), "photography");
+  await user.tab();
+  expect(harness.getQuery()?.main_category).toEqual(["Photography"]);
 });
 
 test("category input uses suggestions on blur and supports pill removal", async () => {
@@ -215,9 +275,13 @@ test("checkbox toggles update hidden and favorites filters immediately", async (
   const harness = renderFiltersSidebarHarness();
 
   await user.click(screen.getByLabelText("Show hidden items"));
+  await user.click(screen.getByLabelText("Show ended items"));
+  await user.click(screen.getByLabelText("Added in last 24 hours"));
   await user.click(screen.getByLabelText("Favorites only"));
 
   expect(harness.getQuery()?.show_hidden).toBe(true);
+  expect(harness.getQuery()?.show_ended).toBe(true);
+  expect(harness.getQuery()?.last_24h).toBe(true);
   expect(harness.getQuery()?.favorite).toBe(true);
 });
 
@@ -228,6 +292,7 @@ test("fetches category suggestions using selected main categories", async () => 
 
   const user = userEvent.setup();
   const harness = renderFiltersSidebarHarness();
+  await waitFor(() => expect(mockedFetchWatchlist).toHaveBeenCalled());
 
   await user.type(screen.getByLabelText("Main Categories"), "Musical Instruments");
   await user.tab();
@@ -241,19 +306,33 @@ test("fetches category suggestions using selected main categories", async () => 
   );
 });
 
-test("sidebar does not render routes, saved views, or watched searches controls", () => {
+test("category suggestions show loading and error states", async () => {
+  const user = userEvent.setup();
+  const deferred = createDeferred<{ items: { value: string; label: string }[] }>();
+  mockedFetchCategorySuggestions.mockImplementation(() => deferred.promise);
+  renderFiltersSidebarHarness();
+
+  await user.type(screen.getByLabelText("Categories"), "ac");
+  expect(await screen.findByText("Loading category suggestions...")).toBeInTheDocument();
+  deferred.reject(new Error("network"));
+  expect(await screen.findByText("Could not load category suggestions.")).toBeInTheDocument();
+});
+
+test("sidebar does not render routes, saved views, or watched searches controls", async () => {
   const itemsQuery = createItemsQueryMock();
   render(<FiltersSidebar itemsQuery={itemsQuery} />);
 
+  await waitFor(() => expect(mockedFetchWatchlist).toHaveBeenCalled());
   expect(screen.queryByText("Route")).not.toBeInTheDocument();
   expect(screen.queryByText("Saved Views")).not.toBeInTheDocument();
   expect(screen.queryByText("Watched Searches")).not.toBeInTheDocument();
 });
 
-test("sidebar internals keep dark styling regardless of global theme", () => {
+test("sidebar internals keep dark styling regardless of global theme", async () => {
   const itemsQuery = createItemsQueryMock();
   render(<FiltersSidebar itemsQuery={itemsQuery} />);
 
+  await waitFor(() => expect(mockedFetchWatchlist).toHaveBeenCalled());
   const sellersLabel = screen.getByText("Sellers");
   const sellersInput = screen.getByLabelText("Sellers");
 

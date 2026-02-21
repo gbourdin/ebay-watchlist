@@ -296,8 +296,11 @@ def items():
     selected_main_categories = normalize_multi(request.args.getlist("main_category"))
     search_query = (request.args.get("q") or "").strip()
     include_hidden = request.args.get("show_hidden") == "1"
+    include_ended = request.args.get("show_ended") == "1"
+    only_last_24h = request.args.get("last_24h") == "1"
     include_favorites_only = request.args.get("favorite") == "1"
     sort = _normalize_sort(request.args.get("sort", "newest"))
+    reference_now = datetime.now()
 
     selected_main_category_ids = _resolve_main_category_ids(selected_main_categories)
 
@@ -311,6 +314,9 @@ def items():
         sort=sort,
         include_hidden=include_hidden,
         include_favorites_only=include_favorites_only,
+        include_ended=include_ended,
+        only_last_24h=only_last_24h,
+        reference_time=reference_now,
     )
     total_pages = max(1, ceil(total_count / page_size))
     page = min(requested_page, total_pages)
@@ -324,6 +330,9 @@ def items():
         sort=sort,
         include_hidden=include_hidden,
         include_favorites_only=include_favorites_only,
+        include_ended=include_ended,
+        only_last_24h=only_last_24h,
+        reference_time=reference_now,
         limit=page_size,
         offset=offset,
     )

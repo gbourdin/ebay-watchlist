@@ -49,6 +49,22 @@ def test_seller_suggestions_returns_matches(temp_db):
     }
 
 
+def test_seller_suggestions_are_case_insensitive_and_limited(temp_db):
+    for idx in range(20):
+        insert_item(f"id-{idx}", f"Alice_{idx:02d}", "Electric Guitars", 619)
+
+    app = create_app()
+    client = app.test_client()
+
+    response = client.get("/api/v1/suggestions/sellers?q=ALICE")
+
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert len(payload["items"]) == 15
+    assert payload["items"][0] == {"value": "Alice_00", "label": "Alice_00"}
+    assert payload["items"][-1] == {"value": "Alice_14", "label": "Alice_14"}
+
+
 def test_category_suggestions_can_be_scoped_by_main_category(temp_db):
     insert_item("1", "alice", "Electric Guitars", 619)
     insert_item("2", "bob", "Laptops", 58058)
