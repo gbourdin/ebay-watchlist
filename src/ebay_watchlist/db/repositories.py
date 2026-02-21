@@ -437,6 +437,46 @@ class ItemRepository:
             for row in top_category_rows
         ]
 
+        month_counts = [0] * 12
+        weekday_counts = [0] * 7
+        hour_counts = [0] * 24
+
+        for item in Item.select(Item.creation_date).iterator():
+            created_at = item.creation_date
+            if created_at is None:
+                continue
+            month_counts[created_at.month - 1] += 1
+            weekday_counts[created_at.weekday()] += 1
+            hour_counts[created_at.hour] += 1
+
+        posted_by_month = [
+            ("Jan", month_counts[0]),
+            ("Feb", month_counts[1]),
+            ("Mar", month_counts[2]),
+            ("Apr", month_counts[3]),
+            ("May", month_counts[4]),
+            ("Jun", month_counts[5]),
+            ("Jul", month_counts[6]),
+            ("Aug", month_counts[7]),
+            ("Sep", month_counts[8]),
+            ("Oct", month_counts[9]),
+            ("Nov", month_counts[10]),
+            ("Dec", month_counts[11]),
+        ]
+        posted_by_weekday = [
+            ("Mon", weekday_counts[0]),
+            ("Tue", weekday_counts[1]),
+            ("Wed", weekday_counts[2]),
+            ("Thu", weekday_counts[3]),
+            ("Fri", weekday_counts[4]),
+            ("Sat", weekday_counts[5]),
+            ("Sun", weekday_counts[6]),
+        ]
+        posted_by_hour = [
+            (f"{hour:02d}:00", hour_counts[hour])
+            for hour in range(24)
+        ]
+
         return {
             "total_items": total_items,
             "active_items": active_items,
@@ -446,6 +486,9 @@ class ItemRepository:
             "favorite_items": favorite_items,
             "top_sellers": top_sellers,
             "top_categories": top_categories,
+            "posted_by_month": posted_by_month,
+            "posted_by_weekday": posted_by_weekday,
+            "posted_by_hour": posted_by_hour,
         }
 
 

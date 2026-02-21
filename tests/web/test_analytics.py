@@ -66,6 +66,33 @@ def test_analytics_api_returns_empty_snapshot(temp_db):
     }
     assert payload["top_sellers"] == []
     assert payload["top_categories"] == []
+    assert payload["distributions"]["posted_by_month"] == [
+        {"label": "Jan", "count": 0},
+        {"label": "Feb", "count": 0},
+        {"label": "Mar", "count": 0},
+        {"label": "Apr", "count": 0},
+        {"label": "May", "count": 0},
+        {"label": "Jun", "count": 0},
+        {"label": "Jul", "count": 0},
+        {"label": "Aug", "count": 0},
+        {"label": "Sep", "count": 0},
+        {"label": "Oct", "count": 0},
+        {"label": "Nov", "count": 0},
+        {"label": "Dec", "count": 0},
+    ]
+    assert payload["distributions"]["posted_by_weekday"] == [
+        {"label": "Mon", "count": 0},
+        {"label": "Tue", "count": 0},
+        {"label": "Wed", "count": 0},
+        {"label": "Thu", "count": 0},
+        {"label": "Fri", "count": 0},
+        {"label": "Sat", "count": 0},
+        {"label": "Sun", "count": 0},
+    ]
+    assert payload["distributions"]["posted_by_hour"] == [
+        {"label": f"{hour:02d}:00", "count": 0}
+        for hour in range(24)
+    ]
 
 
 @freeze_time("2026-02-16 12:00:00")
@@ -84,7 +111,7 @@ def test_analytics_api_shows_metrics_and_rankings(temp_db):
         title="Keys A",
         seller_name="alice",
         category_name="Keyboards",
-        creation_date=now - timedelta(days=10),
+        creation_date=now - timedelta(days=40),
         end_date=now + timedelta(days=2),
     )
     insert_item(
@@ -126,3 +153,44 @@ def test_analytics_api_shows_metrics_and_rankings(temp_db):
     assert {row["name"] for row in payload["top_categories"]} >= {
         "Electric Guitars"
     }
+
+    month_counts = {
+        row["label"]: row["count"]
+        for row in payload["distributions"]["posted_by_month"]
+    }
+    assert month_counts == {
+        "Jan": 1,
+        "Feb": 3,
+        "Mar": 0,
+        "Apr": 0,
+        "May": 0,
+        "Jun": 0,
+        "Jul": 0,
+        "Aug": 0,
+        "Sep": 0,
+        "Oct": 0,
+        "Nov": 0,
+        "Dec": 0,
+    }
+
+    weekday_counts = {
+        row["label"]: row["count"]
+        for row in payload["distributions"]["posted_by_weekday"]
+    }
+    assert weekday_counts == {
+        "Mon": 1,
+        "Tue": 0,
+        "Wed": 1,
+        "Thu": 0,
+        "Fri": 0,
+        "Sat": 1,
+        "Sun": 1,
+    }
+
+    hour_counts = {
+        row["label"]: row["count"]
+        for row in payload["distributions"]["posted_by_hour"]
+    }
+    assert hour_counts["06:00"] == 1
+    assert hour_counts["12:00"] == 3
+    assert sum(hour_counts.values()) == 4

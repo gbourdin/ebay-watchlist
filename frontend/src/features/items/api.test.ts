@@ -136,6 +136,22 @@ describe("items api contract success paths", () => {
       },
       top_sellers: [{ name: "alice", count: 4 }],
       top_categories: [{ name: "Guitars", count: 5 }],
+      distributions: {
+        posted_by_month: [{ label: "Feb", count: 10 }],
+        posted_by_weekday: [
+          { label: "Mon", count: 2 },
+          { label: "Tue", count: 1 },
+          { label: "Wed", count: 2 },
+          { label: "Thu", count: 1 },
+          { label: "Fri", count: 1 },
+          { label: "Sat", count: 1 },
+          { label: "Sun", count: 2 },
+        ],
+        posted_by_hour: Array.from({ length: 24 }, (_, hour) => ({
+          label: `${String(hour).padStart(2, "0")}:00`,
+          count: hour < 10 ? 1 : 0,
+        })),
+      },
     };
     mockFetchOk(analyticsPayload);
     const analytics = await fetchAnalyticsSnapshot();
