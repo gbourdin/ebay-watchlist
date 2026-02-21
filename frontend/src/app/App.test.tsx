@@ -30,6 +30,8 @@ vi.mock("../features/items/useItemsQuery", () => ({
       q: "",
       favorite: false,
       show_hidden: false,
+      show_ended: false,
+      last_24h: false,
       sort: "newest",
       view: "table",
       page: 1,

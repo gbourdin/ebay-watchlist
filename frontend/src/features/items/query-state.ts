@@ -7,6 +7,8 @@ export interface ItemsQueryState {
   q: string;
   favorite: boolean;
   show_hidden: boolean;
+  show_ended: boolean;
+  last_24h: boolean;
   sort: ItemsSort;
   view: ItemsView;
   page: number;
@@ -20,6 +22,8 @@ export const DEFAULT_QUERY_STATE: ItemsQueryState = {
   q: "",
   favorite: false,
   show_hidden: false,
+  show_ended: false,
+  last_24h: false,
   sort: "newest",
   view: "table",
   page: 1,
@@ -60,6 +64,8 @@ export function parseQueryState(search: string): ItemsQueryState {
     q: params.get("q") || "",
     favorite: params.get("favorite") === "1",
     show_hidden: params.get("show_hidden") === "1",
+    show_ended: params.get("show_ended") === "1",
+    last_24h: params.get("last_24h") === "1",
     sort: SORTS.has(parsedSort as ItemsSort) ? (parsedSort as ItemsSort) : "newest",
     view: VIEWS.has(parsedView as ItemsView) ? (parsedView as ItemsView) : "table",
     page: parsePositiveInt(params.get("page"), 1),
@@ -88,6 +94,12 @@ export function serializeQueryState(state: ItemsQueryState): string {
   }
   if (state.show_hidden) {
     params.set("show_hidden", "1");
+  }
+  if (state.show_ended) {
+    params.set("show_ended", "1");
+  }
+  if (state.last_24h) {
+    params.set("last_24h", "1");
   }
   if (state.sort !== "newest") {
     params.set("sort", state.sort);

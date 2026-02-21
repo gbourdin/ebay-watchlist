@@ -8,6 +8,8 @@ test("encodes filters into URL params", () => {
     q: "telecaster",
     favorite: true,
     show_hidden: true,
+    show_ended: true,
+    last_24h: true,
     sort: "price_low",
     view: "cards",
     page: 2,
@@ -23,6 +25,8 @@ test("encodes filters into URL params", () => {
   expect(params.get("q")).toBe("telecaster");
   expect(params.get("favorite")).toBe("1");
   expect(params.get("show_hidden")).toBe("1");
+  expect(params.get("show_ended")).toBe("1");
+  expect(params.get("last_24h")).toBe("1");
   expect(params.get("sort")).toBe("price_low");
   expect(params.get("view")).toBe("cards");
   expect(params.get("page")).toBe("2");
@@ -31,7 +35,7 @@ test("encodes filters into URL params", () => {
 
 test("parses URL params into typed query state", () => {
   const state = parseQueryState(
-    "?seller=alice&category=Electric+Guitars&main_category=Musical+Instruments&q=tele&favorite=1&show_hidden=1&sort=bids_desc&view=hybrid&page=3&page_size=25"
+    "?seller=alice&category=Electric+Guitars&main_category=Musical+Instruments&q=tele&favorite=1&show_hidden=1&show_ended=1&last_24h=1&sort=bids_desc&view=hybrid&page=3&page_size=25"
   );
 
   expect(state).toEqual({
@@ -41,6 +45,8 @@ test("parses URL params into typed query state", () => {
     q: "tele",
     favorite: true,
     show_hidden: true,
+    show_ended: true,
+    last_24h: true,
     sort: "bids_desc",
     view: "hybrid",
     page: 3,

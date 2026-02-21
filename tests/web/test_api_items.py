@@ -17,6 +17,7 @@ def insert_item(
     end_date: datetime,
     bid_count: int = 0,
     current_bid_price: float | None = None,
+    price: float = 10,
 ):
     Item.create(
         item_id=item_id,
@@ -29,7 +30,7 @@ def insert_item(
         condition="Used",
         shipping_options=[],
         buying_options=["AUCTION"],
-        price=10,
+        price=price,
         price_currency="GBP",
         current_bid_price=current_bid_price,
         current_bid_price_currency="GBP" if current_bid_price is not None else None,
@@ -61,6 +62,7 @@ def test_items_api_returns_paginated_payload_shape(temp_db):
     }
 
 
+@freeze_time("2025-01-01 12:00:00")
 def test_items_api_serializes_row_fields(temp_db):
     base = datetime(2025, 1, 1, 12, 0, 0)
     insert_item(
@@ -117,6 +119,7 @@ def test_items_api_serializes_row_fields(temp_db):
     assert row["note_last_modified"] is not None
 
 
+@freeze_time("2025-01-01 12:00:00")
 def test_items_api_applies_filters_sort_and_pagination(temp_db):
     base = datetime(2025, 1, 1, 12, 0, 0)
     insert_item(
@@ -214,4 +217,243 @@ def test_items_api_ending_soon_active_excludes_ended_items(temp_db):
     assert [row["item_id"] for row in payload["items"]] == [
         "active-soon",
         "active-late",
+    ]
+
+
+@freeze_time("2026-02-16 12:00:00")
+def test_items_api_ending_soon_active_respects_show_ended_flag(temp_db):
+    now = datetime(2026, 2, 16, 12, 0, 0)
+    insert_item(
+        item_id="ended",
+        title="Ended Auction",
+        seller_name="alice",
+        category_name="Electric Guitars",
+        scraped_category_id=619,
+        creation_date=now - timedelta(days=2),
+        end_date=now - timedelta(hours=1),
+    )
+    insert_item(
+        item_id="active-late",
+        title="Ends Later",
+        seller_name="alice",
+        category_name="Electric Guitars",
+        scraped_category_id=619,
+        creation_date=now - timedelta(days=1),
+        end_date=now + timedelta(hours=3),
+    )
+    insert_item(
+        item_id="active-soon",
+        title="Ends Soon",
+        seller_name="alice",
+        category_name="Electric Guitars",
+        scraped_category_id=619,
+        creation_date=now - timedelta(days=1),
+        end_date=now + timedelta(hours=1),
+    )
+
+    app = create_app()
+    client = app.test_client()
+
+    response = client.get("/api/v1/items?sort=ending_soon_active&show_ended=1")
+
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert [row["item_id"] for row in payload["items"]] == [
+        "ended",
+        "active-soon",
+        "active-late",
+    ]
+
+
+@freeze_time("2026-02-16 12:00:00")
+def test_items_api_excludes_ended_by_default_and_can_include_with_flag(temp_db):
+    now = datetime(2026, 2, 16, 12, 0, 0)
+    insert_item(
+        item_id="ended",
+        title="Ended Auction",
+        seller_name="alice",
+        category_name="Electric Guitars",
+        scraped_category_id=619,
+        creation_date=now - timedelta(days=3),
+        end_date=now - timedelta(hours=1),
+    )
+    insert_item(
+        item_id="active",
+        title="Active Auction",
+        seller_name="alice",
+        category_name="Electric Guitars",
+        scraped_category_id=619,
+        creation_date=now - timedelta(days=2),
+        end_date=now + timedelta(hours=1),
+    )
+
+    app = create_app()
+    client = app.test_client()
+
+    default_response = client.get("/api/v1/items?sort=newest")
+    assert default_response.status_code == 200
+    assert [row["item_id"] for row in default_response.get_json()["items"]] == ["active"]
+
+    include_ended_response = client.get("/api/v1/items?sort=newest&show_ended=1")
+    assert include_ended_response.status_code == 200
+    assert [row["item_id"] for row in include_ended_response.get_json()["items"]] == [
+        "active",
+        "ended",
+    ]
+
+
+@freeze_time("2026-02-16 12:00:00")
+def test_items_api_last_24h_filter_can_be_combined_with_show_ended(temp_db):
+    now = datetime(2026, 2, 16, 12, 0, 0)
+    insert_item(
+        item_id="old-active",
+        title="Old active",
+        seller_name="alice",
+        category_name="Electric Guitars",
+        scraped_category_id=619,
+        creation_date=now - timedelta(days=3),
+        end_date=now + timedelta(days=2),
+    )
+    insert_item(
+        item_id="recent-active",
+        title="Recent active",
+        seller_name="alice",
+        category_name="Electric Guitars",
+        scraped_category_id=619,
+        creation_date=now - timedelta(hours=1),
+        end_date=now + timedelta(days=2),
+    )
+    insert_item(
+        item_id="recent-ended",
+        title="Recent ended",
+        seller_name="alice",
+        category_name="Electric Guitars",
+        scraped_category_id=619,
+        creation_date=now - timedelta(hours=2),
+        end_date=now - timedelta(minutes=30),
+    )
+
+    app = create_app()
+    client = app.test_client()
+
+    default_response = client.get("/api/v1/items?sort=newest")
+    assert default_response.status_code == 200
+    assert [row["item_id"] for row in default_response.get_json()["items"]] == [
+        "recent-active",
+        "old-active",
+    ]
+
+    last_24h_response = client.get("/api/v1/items?sort=newest&last_24h=1")
+    assert last_24h_response.status_code == 200
+    assert [row["item_id"] for row in last_24h_response.get_json()["items"]] == [
+        "recent-active",
+    ]
+
+    last_24h_with_ended_response = client.get(
+        "/api/v1/items?sort=newest&last_24h=1&show_ended=1"
+    )
+    assert last_24h_with_ended_response.status_code == 200
+    assert [row["item_id"] for row in last_24h_with_ended_response.get_json()["items"]] == [
+        "recent-active",
+        "recent-ended",
+    ]
+
+
+@freeze_time("2026-02-16 12:00:00")
+def test_items_api_price_sort_uses_current_bid_or_price_fallback(temp_db):
+    base = datetime(2026, 2, 16, 12, 0, 0)
+    insert_item(
+        item_id="no-bid",
+        title="No bid yet",
+        seller_name="alice",
+        category_name="Electric Guitars",
+        scraped_category_id=619,
+        creation_date=base,
+        end_date=base + timedelta(days=1),
+        current_bid_price=None,
+        price=90,
+    )
+    insert_item(
+        item_id="low-bid",
+        title="Low bid",
+        seller_name="alice",
+        category_name="Electric Guitars",
+        scraped_category_id=619,
+        creation_date=base,
+        end_date=base + timedelta(days=1),
+        current_bid_price=10,
+        price=500,
+    )
+    insert_item(
+        item_id="high-bid",
+        title="High bid",
+        seller_name="alice",
+        category_name="Electric Guitars",
+        scraped_category_id=619,
+        creation_date=base,
+        end_date=base + timedelta(days=1),
+        current_bid_price=120,
+        price=20,
+    )
+
+    app = create_app()
+    client = app.test_client()
+
+    low_response = client.get("/api/v1/items?sort=price_low")
+    assert low_response.status_code == 200
+    assert [row["item_id"] for row in low_response.get_json()["items"]] == [
+        "low-bid",
+        "no-bid",
+        "high-bid",
+    ]
+
+    high_response = client.get("/api/v1/items?sort=price_high")
+    assert high_response.status_code == 200
+    assert [row["item_id"] for row in high_response.get_json()["items"]] == [
+        "high-bid",
+        "no-bid",
+        "low-bid",
+    ]
+
+
+@freeze_time("2026-02-16 12:00:00")
+def test_items_api_price_sort_excludes_ended_by_default(temp_db):
+    now = datetime(2026, 2, 16, 12, 0, 0)
+    insert_item(
+        item_id="ended-lowest",
+        title="Ended cheapest",
+        seller_name="alice",
+        category_name="Electric Guitars",
+        scraped_category_id=619,
+        creation_date=now - timedelta(days=2),
+        end_date=now - timedelta(hours=2),
+        current_bid_price=1,
+        price=1,
+    )
+    insert_item(
+        item_id="active-expensive",
+        title="Active expensive",
+        seller_name="alice",
+        category_name="Electric Guitars",
+        scraped_category_id=619,
+        creation_date=now - timedelta(days=1),
+        end_date=now + timedelta(hours=2),
+        current_bid_price=100,
+        price=100,
+    )
+
+    app = create_app()
+    client = app.test_client()
+
+    default_response = client.get("/api/v1/items?sort=price_low")
+    assert default_response.status_code == 200
+    assert [row["item_id"] for row in default_response.get_json()["items"]] == [
+        "active-expensive",
+    ]
+
+    include_ended_response = client.get("/api/v1/items?sort=price_low&show_ended=1")
+    assert include_ended_response.status_code == 200
+    assert [row["item_id"] for row in include_ended_response.get_json()["items"]] == [
+        "ended-lowest",
+        "active-expensive",
     ]

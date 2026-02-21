@@ -39,3 +39,22 @@ def test_ensure_schema_compatibility_adds_state_tables_without_data_loss(temp_db
     assert "itemstate" in set(database.get_tables())
     assert "itemnote" in set(database.get_tables())
     assert Item.select().count() == 1
+
+
+def test_ensure_schema_compatibility_creates_item_filter_indexes(temp_db):
+    database.execute_sql("DROP INDEX IF EXISTS idx_item_seller_name")
+    database.execute_sql("DROP INDEX IF EXISTS idx_item_category_name")
+    database.execute_sql("DROP INDEX IF EXISTS idx_item_scraped_category_id")
+    database.execute_sql("DROP INDEX IF EXISTS idx_item_creation_date")
+
+    ensure_schema_compatibility()
+
+    index_names = {
+        str(row[1]) for row in database.execute_sql("PRAGMA index_list('item')").fetchall()
+    }
+    assert {
+        "idx_item_seller_name",
+        "idx_item_category_name",
+        "idx_item_scraped_category_id",
+        "idx_item_creation_date",
+    }.issubset(index_names)
