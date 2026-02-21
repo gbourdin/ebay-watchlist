@@ -110,3 +110,42 @@ test("each distribution can switch between counts and percentages", async () => 
   );
   expect(within(weekdayChart).getByTitle("Fri: 14.2%")).toBeInTheDocument();
 });
+
+test("count mode uses unique integer axis labels for low-count distributions", async () => {
+  fetchAnalyticsSnapshotMock.mockResolvedValueOnce({
+    metrics: {
+      total_items: 3,
+      active_items: 3,
+      ending_soon_items: 0,
+      new_last_7_days: 3,
+      hidden_items: 0,
+      favorite_items: 0,
+    },
+    top_sellers: [{ name: "alice", count: 3 }],
+    top_categories: [{ name: "Guitars", count: 3 }],
+    distributions: {
+      posted_by_month: [
+        { label: "Jan", count: 1 },
+        { label: "Feb", count: 2 },
+      ],
+      posted_by_weekday: [
+        { label: "Mon", count: 3 },
+      ],
+      posted_by_hour: Array.from({ length: 24 }, (_, hour) => ({
+        label: `${String(hour).padStart(2, "0")}:00`,
+        count: hour === 0 ? 3 : 0,
+      })),
+    },
+  });
+
+  render(<AnalyticsPage />);
+
+  const monthAxis = await screen.findByTestId("distribution-axis-posted-by-month");
+  const labels = Array.from(monthAxis.querySelectorAll("li"))
+    .map((tick) => (tick.textContent ?? "").trim())
+    .filter((label) => label.length > 0);
+
+  expect(labels.length).toBeGreaterThan(0);
+  expect(new Set(labels).size).toBe(labels.length);
+  expect(labels.every((label) => /^\d+$/.test(label))).toBe(true);
+});

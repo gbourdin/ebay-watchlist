@@ -29,7 +29,17 @@ function computeNiceAxisStep(maxValue: number, maxTicks = 7): number {
   return 10 * magnitude;
 }
 
-function buildAxisTicks(maxValue: number): number[] {
+function buildAxisTicks(maxValue: number, mode: "absolute" | "relative"): number[] {
+  if (mode === "absolute") {
+    const maxTicks = 7;
+    const safeMax = Math.max(1, Math.ceil(maxValue));
+    const axisStep = Math.max(1, Math.ceil(safeMax / Math.max(1, maxTicks - 1)));
+    const axisMax = Math.max(axisStep, Math.ceil(safeMax / axisStep) * axisStep);
+    const tickCount = Math.floor(axisMax / axisStep) + 1;
+
+    return Array.from({ length: tickCount }, (_, tickIndex) => axisMax - tickIndex * axisStep);
+  }
+
   const axisStep = computeNiceAxisStep(maxValue, 7);
   const axisMax = Math.max(axisStep, Math.ceil(maxValue / axisStep) * axisStep);
   const tickCount = Math.floor(axisMax / axisStep) + 1;
@@ -135,7 +145,10 @@ function DistributionBarChart({
   const compactLabels = dense && rows.length > 12;
   const labelInterval = compactLabels ? 2 : 1;
   const minPlotWidth = rows.length * (dense ? 28 : 36);
-  const axisTicks = buildAxisTicks(displayMode === "relative" ? maxRelativeValue : maxCount);
+  const axisTicks = buildAxisTicks(
+    displayMode === "relative" ? maxRelativeValue : maxCount,
+    displayMode
+  );
   const axisMax = axisTicks[0] ?? 1;
   const axisTickDivisor = Math.max(1, axisTicks.length - 1);
   const axisLabelInterval = axisTicks.length > 7 ? 2 : 1;

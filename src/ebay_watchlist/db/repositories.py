@@ -441,7 +441,7 @@ class ItemRepository:
         weekday_counts = [0] * 7
         hour_counts = [0] * 24
 
-        for item in Item.select(Item.creation_date):
+        for item in Item.select(Item.creation_date).iterator():
             created_at = item.creation_date
             if created_at is None:
                 continue
