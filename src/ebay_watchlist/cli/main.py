@@ -8,7 +8,7 @@ from peewee import OperationalError
 
 from ebay_watchlist.cli.display_utils import display_db_items, print_with_timestamp
 from ebay_watchlist.cli.management import management_app
-from ebay_watchlist.db.config import database
+from ebay_watchlist.db.config import DATABASE_URL, database
 from ebay_watchlist.db.repositories import (
     CategoryRepository,
     ItemRepository,
@@ -51,10 +51,25 @@ def fetch_updates(limit: int = 100):
     enabled_categories = CategoryRepository.get_enabled_categories()
 
     for category_id in enabled_categories:
+        print_with_timestamp(
+            "Fetch context: "
+            f"database={DATABASE_URL} "
+            f"category_id={category_id} "
+            f"watched_sellers_count={len(watched_sellers)} "
+            f"watched_sellers={watched_sellers}"
+        )
         items = api.get_latest_items_for_sellers(
             seller_names=watched_sellers,
             category_id=category_id,
             limit=limit,
+        )
+        response_sellers = sorted({item.seller.username for item in items})
+        print_with_timestamp(
+            "Fetch response: "
+            f"category_id={category_id} "
+            f"response_items_count={len(items)} "
+            f"unique_sellers_count={len(response_sellers)} "
+            f"unique_sellers={response_sellers}"
         )
 
         for item in items:
