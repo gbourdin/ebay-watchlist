@@ -59,6 +59,8 @@ def test_run_gunicorn_execs_expected_command(monkeypatch):
 
 
 def test_fetch_updates_runs_full_happy_path_with_notifications(monkeypatch):
+    from types import SimpleNamespace
+
     calls: dict[str, object] = {
         "latest_items": [],
         "created_items": [],
@@ -75,7 +77,15 @@ def test_fetch_updates_runs_full_happy_path_with_notifications(monkeypatch):
             self, seller_names: list[str], category_id: int, limit: int
         ):
             calls["latest_items"].append((tuple(seller_names), category_id, limit))
-            return [f"{category_id}-item-a", f"{category_id}-item-b"]
+            if category_id == 619:
+                return [
+                    SimpleNamespace(seller=SimpleNamespace(username="seller-1")),
+                    SimpleNamespace(seller=SimpleNamespace(username="seller-2")),
+                ]
+            return [
+                SimpleNamespace(seller=SimpleNamespace(username="seller-2")),
+                SimpleNamespace(seller=SimpleNamespace(username="seller-2")),
+            ]
 
     class FakeNotificationService:
         def notify_new_items(self, items):
@@ -127,6 +137,21 @@ def test_fetch_updates_runs_full_happy_path_with_notifications(monkeypatch):
     assert len(calls["created_items"]) == 4
     assert calls["displayed"] == ["created-row"]
     assert calls["notified"] == ["created-row"]
+    assert any("watched_sellers=['seller-1', 'seller-2']" in message for message in calls["messages"])
+    assert any(
+        "category_id=619" in message
+        and "response_items_count=2" in message
+        and "unique_sellers_count=2" in message
+        and "unique_sellers=['seller-1', 'seller-2']" in message
+        for message in calls["messages"]
+    )
+    assert any(
+        "category_id=58058" in message
+        and "response_items_count=2" in message
+        and "unique_sellers_count=1" in message
+        and "unique_sellers=['seller-2']" in message
+        for message in calls["messages"]
+    )
     assert any("new items inserted" in message for message in calls["messages"])
 
 
