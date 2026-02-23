@@ -30,6 +30,14 @@ const sampleItem: ItemRow = {
   note_last_modified: null,
 };
 let rows: ItemRow[] = [sampleItem];
+let paginationState = {
+  page: 1,
+  page_size: 100,
+  total: rows.length,
+  total_pages: 1,
+  has_next: false,
+  has_prev: false,
+};
 const {
   toggleFavoriteMock,
   toggleHiddenMock,
@@ -67,12 +75,12 @@ vi.mock("../useItemsQuery", () => ({
     query: queryState,
     data: {
       items: rows,
-      page: 1,
-      page_size: 100,
-      total: rows.length,
-      total_pages: 1,
-      has_next: false,
-      has_prev: false,
+      page: paginationState.page,
+      page_size: paginationState.page_size,
+      total: paginationState.total,
+      total_pages: paginationState.total_pages,
+      has_next: paginationState.has_next,
+      has_prev: paginationState.has_prev,
       sort: queryState.sort,
     },
     loading: false,
@@ -125,6 +133,14 @@ beforeEach(() => {
     page_size: 100,
   };
   rows = [sampleItem];
+  paginationState = {
+    page: 1,
+    page_size: 100,
+    total: rows.length,
+    total_pages: 1,
+    has_next: false,
+    has_prev: false,
+  };
   updateQuery.mockClear();
   toggleFavoriteMock.mockReset();
   toggleHiddenMock.mockReset();
@@ -163,6 +179,46 @@ test("dense table is the default view", () => {
   expect(screen.getByTestId("ends-1")).toHaveAttribute("title");
   expect(screen.getByTestId("items-toolbar")).toHaveClass("dark:bg-slate-900");
   expect(screen.getByTestId("view-table")).toHaveClass("dark:border-slate-700");
+});
+
+test("shows pagination controls with current page context", () => {
+  paginationState = {
+    page: 2,
+    page_size: 100,
+    total: 420,
+    total_pages: 5,
+    has_next: true,
+    has_prev: true,
+  };
+
+  render(<ItemsPage />);
+
+  expect(screen.getByText("Page 2 of 5")).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "First" })).toBeEnabled();
+  expect(screen.getByRole("button", { name: "Previous" })).toBeEnabled();
+  expect(screen.getByRole("button", { name: "Next" })).toBeEnabled();
+  expect(screen.getByRole("button", { name: "Last" })).toBeEnabled();
+  expect(screen.getByRole("button", { name: "2" })).toHaveAttribute("aria-current", "page");
+});
+
+test("pagination controls update query page", async () => {
+  const user = userEvent.setup();
+  paginationState = {
+    page: 2,
+    page_size: 100,
+    total: 420,
+    total_pages: 5,
+    has_next: true,
+    has_prev: true,
+  };
+
+  render(<ItemsPage />);
+
+  await user.click(screen.getByRole("button", { name: "Next" }));
+  expect(queryState.page).toBe(3);
+
+  await user.click(screen.getByRole("button", { name: "Last" }));
+  expect(queryState.page).toBe(5);
 });
 
 test("view switcher supports dense, hybrid, and cards", async () => {

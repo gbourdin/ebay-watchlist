@@ -15,6 +15,7 @@ import ItemsToolbar from "./components/ItemsToolbar";
 import CardGridView from "./components/CardGridView";
 import ItemNoteEditor from "./components/ItemNoteEditor";
 import DenseTableColumnControls from "./components/DenseTableColumnControls";
+import PaginationControls from "./components/PaginationControls";
 import { useItemsQuery, type UseItemsQueryResult } from "./useItemsQuery";
 import {
   loadStoredDenseTableColumns,
@@ -214,6 +215,10 @@ export default function ItemsPage({ itemsQuery, onMenuActionsChange }: ItemsPage
     updateQuery({ view, page: 1 });
   }
 
+  function onPageChange(page: number) {
+    updateQuery({ page });
+  }
+
   function appendFilterValue(field: FilterField, value: string) {
     const normalized = value.trim();
     if (!normalized) {
@@ -299,6 +304,16 @@ export default function ItemsPage({ itemsQuery, onMenuActionsChange }: ItemsPage
           onAddSellerFilter={handleAddSellerFilter}
           onAddCategoryFilter={handleAddCategoryFilter}
           onEditNote={setNoteEditorItem}
+        />
+      )}
+
+      {data && (
+        <PaginationControls
+          page={data.page}
+          totalPages={data.total_pages}
+          hasPrev={data.has_prev}
+          hasNext={data.has_next}
+          onPageChange={onPageChange}
         />
       )}
 
