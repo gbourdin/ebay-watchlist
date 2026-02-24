@@ -1,3 +1,6 @@
+import logging
+from dataclasses import dataclass
+
 import pytest
 
 from ebay_watchlist.cli import main as cli_main
@@ -58,15 +61,27 @@ def test_run_gunicorn_execs_expected_command(monkeypatch):
     ]
 
 
-def test_fetch_updates_runs_full_happy_path_with_notifications(monkeypatch):
-    from types import SimpleNamespace
+@dataclass
+class _FakeSeller:
+    username: str
 
+
+@dataclass
+class _FakeItem:
+    seller: _FakeSeller
+
+
+def test_fetch_updates_runs_full_happy_path_with_notifications(monkeypatch, caplog):
     calls: dict[str, object] = {
         "latest_items": [],
         "created_items": [],
         "displayed": None,
         "notified": None,
         "messages": [],
+    }
+    items_by_category = {
+        619: [_FakeItem(_FakeSeller("seller-1")), _FakeItem(_FakeSeller("seller-2"))],
+        58058: [_FakeItem(_FakeSeller("seller-2")), _FakeItem(_FakeSeller("seller-2"))],
     }
 
     class FakeEbayAPI:
@@ -77,15 +92,7 @@ def test_fetch_updates_runs_full_happy_path_with_notifications(monkeypatch):
             self, seller_names: list[str], category_id: int, limit: int
         ):
             calls["latest_items"].append((tuple(seller_names), category_id, limit))
-            if category_id == 619:
-                return [
-                    SimpleNamespace(seller=SimpleNamespace(username="seller-1")),
-                    SimpleNamespace(seller=SimpleNamespace(username="seller-2")),
-                ]
-            return [
-                SimpleNamespace(seller=SimpleNamespace(username="seller-2")),
-                SimpleNamespace(seller=SimpleNamespace(username="seller-2")),
-            ]
+            return items_by_category[category_id]
 
     class FakeNotificationService:
         def notify_new_items(self, items):
@@ -126,6 +133,7 @@ def test_fetch_updates_runs_full_happy_path_with_notifications(monkeypatch):
         "print_with_timestamp",
         lambda message: calls["messages"].append(message),
     )
+    caplog.set_level(logging.INFO, logger=cli_main.__name__)
 
     cli_main.fetch_updates(limit=2)
 
@@ -137,20 +145,24 @@ def test_fetch_updates_runs_full_happy_path_with_notifications(monkeypatch):
     assert len(calls["created_items"]) == 4
     assert calls["displayed"] == ["created-row"]
     assert calls["notified"] == ["created-row"]
-    assert any("watched_sellers=['seller-1', 'seller-2']" in message for message in calls["messages"])
+    fetch_log_messages = [record.message for record in caplog.records]
+    assert any(
+        "watched_sellers=['seller-1', 'seller-2']" in message
+        for message in fetch_log_messages
+    )
     assert any(
         "category_id=619" in message
         and "response_items_count=2" in message
         and "unique_sellers_count=2" in message
         and "unique_sellers=['seller-1', 'seller-2']" in message
-        for message in calls["messages"]
+        for message in fetch_log_messages
     )
     assert any(
         "category_id=58058" in message
         and "response_items_count=2" in message
         and "unique_sellers_count=1" in message
         and "unique_sellers=['seller-2']" in message
-        for message in calls["messages"]
+        for message in fetch_log_messages
     )
     assert any("new items inserted" in message for message in calls["messages"])
 

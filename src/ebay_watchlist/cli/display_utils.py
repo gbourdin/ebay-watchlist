@@ -2,14 +2,12 @@ from datetime import datetime
 from typing import Any
 
 import humanize
+from rich import print
 from rich.console import Console
 from rich.table import Table
 
 from ebay_watchlist.db.models import Item
 from ebay_watchlist.ebay.dtos import EbayItem
-
-
-TIMESTAMP_CONSOLE = Console(markup=False, highlight=False, emoji=False)
 
 
 def _format_price(
@@ -82,7 +80,4 @@ def display_items(items: list[EbayItem]):
 
 
 def print_with_timestamp(message: str):
-    TIMESTAMP_CONSOLE.print(
-        f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] " + message,
-        soft_wrap=True,
-    )
+    print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] " + message)
