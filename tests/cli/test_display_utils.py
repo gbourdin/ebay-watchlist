@@ -17,3 +17,4 @@ def test_format_naturaltime_returns_dash_for_non_datetime():
     result = display_utils.format_naturaltime("not-a-datetime")
 
     assert result == "-"
+
