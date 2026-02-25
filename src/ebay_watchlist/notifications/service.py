@@ -1,21 +1,22 @@
-import os
 import logging
 from collections import Counter
 from urllib.parse import urljoin
 
 from python_ntfy import NtfyClient, MessageSendError, ViewAction
 from ebay_watchlist.db.models import Item
+from ebay_watchlist.settings import Settings, load_settings
 
-NTFY_TOPIC = os.getenv("NTFY_TOPIC_ID")
-WEBSERVICE_URL = os.getenv("WEBSERVICE_URL", None)
 SELLER_URI_TEMPLATE = "/sellers/{seller_name}"
 logger = logging.getLogger(__name__)
 
 
 class NotificationService:
-    def __init__(self):
+    def __init__(self, settings: Settings | None = None):
+        self._settings = settings if settings is not None else load_settings()
         self._client: NtfyClient | None = (
-            NtfyClient(topic=NTFY_TOPIC) if NTFY_TOPIC else None
+            NtfyClient(topic=self._settings.ntfy_topic_id)
+            if self._settings.ntfy_topic_id
+            else None
         )
 
     def notify_new_items(self, items: list[Item]):
@@ -44,12 +45,12 @@ class NotificationService:
         tags = ["rotating_light"]
         actions = [ViewAction("View on ebay", str(item.web_url))]
 
-        if WEBSERVICE_URL is not None:
+        if self._settings.webservice_url is not None:
             actions.append(
                 ViewAction(
                     f"Items by {item.seller_name}",
                     urljoin(
-                        WEBSERVICE_URL,
+                        self._settings.webservice_url,
                         SELLER_URI_TEMPLATE.format(seller_name=item.seller_name),
                     ),
                 )
@@ -80,8 +81,8 @@ class NotificationService:
         tags = ["rotating_light"]
         actions = []
 
-        if WEBSERVICE_URL is not None:
-            actions.append(ViewAction("View all items", WEBSERVICE_URL))
+        if self._settings.webservice_url is not None:
+            actions.append(ViewAction("View all items", self._settings.webservice_url))
 
         try:
             if self._client is None:

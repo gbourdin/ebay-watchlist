@@ -14,6 +14,7 @@ from ebay_watchlist.db.repositories import (
     SellerRepository,
 )
 from ebay_watchlist.ebay.api import EbayAPI
+from ebay_watchlist.settings import load_settings
 from ebay_watchlist.web.db import connect_db
 from ebay_watchlist.web.view_helpers import (
     get_main_category_name_by_id,
@@ -239,15 +240,14 @@ def _search_watchlist_category_suggestions(
         if normalized_query.lower() in category_name.lower()
     ][:15]
 
-    client_id = os.getenv("EBAY_CLIENT_ID")
-    client_secret = os.getenv("EBAY_CLIENT_SECRET")
-    if not client_id or not client_secret:
+    settings = load_settings()
+    if not settings.ebay_client_id or not settings.ebay_client_secret:
         return fallback
 
-    resolved_marketplace_id = marketplace_id or os.getenv("EBAY_MARKETPLACE_ID", "EBAY_GB")
+    resolved_marketplace_id = marketplace_id or settings.ebay_marketplace_id
     api = EbayAPI(
-        client_id=client_id,
-        client_secret=client_secret,
+        client_id=settings.ebay_client_id,
+        client_secret=settings.ebay_client_secret,
         marketplace_id=resolved_marketplace_id,
     )
     try:
@@ -431,9 +431,8 @@ def refresh_item(item_id: str):
         logger.warning("Manual refresh requested for missing local item item_id=%s", item_id)
         return jsonify({"error": "item not found"}), 404
 
-    client_id = os.getenv("EBAY_CLIENT_ID")
-    client_secret = os.getenv("EBAY_CLIENT_SECRET")
-    if not client_id or not client_secret:
+    settings = load_settings()
+    if not settings.ebay_client_id or not settings.ebay_client_secret:
         logger.warning(
             "Manual refresh unavailable for item_id=%s: missing eBay credentials",
             item_id,
@@ -445,10 +444,10 @@ def refresh_item(item_id: str):
             503,
         )
 
-    marketplace_id = os.getenv("EBAY_MARKETPLACE_ID", "EBAY_GB")
+    marketplace_id = settings.ebay_marketplace_id
     api = EbayAPI(
-        client_id=client_id,
-        client_secret=client_secret,
+        client_id=settings.ebay_client_id,
+        client_secret=settings.ebay_client_secret,
         marketplace_id=marketplace_id,
     )
 

@@ -1,16 +1,18 @@
 from flask import g
 from peewee import OperationalError
 
-from ebay_watchlist.db.config import database
+from ebay_watchlist.db.config import configure_database, database
+from ebay_watchlist.settings import Settings
 from ebay_watchlist.db.utils import ensure_schema_compatibility
 
 
-def connect_db():
+def connect_db(settings: Settings | None = None):
     """
     create a db connection for this request
     :return:
     """
     if "db" not in g:
+        configure_database(settings=settings)
         try:
             database.connect()
         except OperationalError:  # Connection already open

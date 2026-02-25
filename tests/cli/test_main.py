@@ -95,6 +95,9 @@ def test_fetch_updates_runs_full_happy_path_with_notifications(monkeypatch, capl
             return items_by_category[category_id]
 
     class FakeNotificationService:
+        def __init__(self, settings):
+            calls["notification_settings"] = settings
+
         def notify_new_items(self, items):
             calls["notified"] = list(items)
 

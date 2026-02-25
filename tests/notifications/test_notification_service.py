@@ -4,6 +4,7 @@ from python_ntfy import MessageSendError
 
 from ebay_watchlist.notifications import service as notification_service_module
 from ebay_watchlist.notifications.service import NotificationService
+from ebay_watchlist.settings import Settings
 
 
 class FailingClient:
@@ -11,9 +12,31 @@ class FailingClient:
         raise MessageSendError("boom")
 
 
+def _settings(
+    webservice_url: str | None = None,
+    ntfy_topic_id: str | None = None,
+) -> Settings:
+    return Settings(
+        database_url=":memory:",
+        ebay_client_id=None,
+        ebay_client_secret=None,
+        ebay_marketplace_id="EBAY_GB",
+        enable_notifications=False,
+        ntfy_topic_id=ntfy_topic_id,
+        webservice_url=webservice_url,
+    )
+
+
+def test_notification_service_uses_settings_for_topic():
+    service = NotificationService(settings=_settings(ntfy_topic_id="watchlist-topic"))
+
+    assert service._client is not None
+
+
 def test_send_individual_notification_handles_send_error():
     service = NotificationService.__new__(NotificationService)
     service._client = FailingClient()
+    service._settings = _settings()
 
     item = SimpleNamespace(
         seller_name="alice",
@@ -31,6 +54,7 @@ def test_send_individual_notification_handles_send_error():
 def test_notify_new_items_warns_when_topic_is_not_configured(caplog):
     service = NotificationService.__new__(NotificationService)
     service._client = None
+    service._settings = _settings()
 
     caplog.set_level("WARNING", logger="ebay_watchlist.notifications.service")
     service.notify_new_items([SimpleNamespace(seller_name="alice")])
@@ -59,6 +83,7 @@ def test_notify_new_items_uses_individual_for_small_batches_and_grouped_for_larg
 
     service = NotificationService.__new__(NotificationService)
     service._client = CapturingClient()
+    service._settings = _settings()
 
     service.notify_new_items([_build_item("alice"), _build_item("bob")])
     assert len(sent_messages) == 2
@@ -80,7 +105,6 @@ def test_send_individual_notification_includes_web_links(monkeypatch):
         def send(self, **kwargs):
             sent.update(kwargs)
 
-    monkeypatch.setattr(notification_service_module, "WEBSERVICE_URL", "https://watch.local")
     monkeypatch.setattr(
         notification_service_module,
         "ViewAction",
@@ -89,6 +113,7 @@ def test_send_individual_notification_includes_web_links(monkeypatch):
 
     service = NotificationService.__new__(NotificationService)
     service._client = CapturingClient()
+    service._settings = _settings(webservice_url="https://watch.local")
 
     item = SimpleNamespace(
         seller_name="alice",
@@ -118,7 +143,6 @@ def test_send_grouped_notification_aggregates_by_seller(monkeypatch):
         def send(self, **kwargs):
             sent.update(kwargs)
 
-    monkeypatch.setattr(notification_service_module, "WEBSERVICE_URL", "https://watch.local")
     monkeypatch.setattr(
         notification_service_module,
         "ViewAction",
@@ -127,6 +151,7 @@ def test_send_grouped_notification_aggregates_by_seller(monkeypatch):
 
     service = NotificationService.__new__(NotificationService)
     service._client = CapturingClient()
+    service._settings = _settings(webservice_url="https://watch.local")
 
     items = [
         SimpleNamespace(seller_name="alice"),
@@ -145,6 +170,7 @@ def test_send_grouped_notification_aggregates_by_seller(monkeypatch):
 def test_send_grouped_notification_handles_send_error(caplog):
     service = NotificationService.__new__(NotificationService)
     service._client = FailingClient()
+    service._settings = _settings()
 
     caplog.set_level("ERROR", logger="ebay_watchlist.notifications.service")
     service.send_grouped_notification(
