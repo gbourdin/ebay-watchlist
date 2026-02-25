@@ -9,7 +9,7 @@ from peewee import OperationalError
 
 from ebay_watchlist.cli.display_utils import display_db_items, print_with_timestamp
 from ebay_watchlist.cli.management import management_app
-from ebay_watchlist.db.config import DATABASE_URL, database
+from ebay_watchlist.db.config import configure_database, database
 from ebay_watchlist.db.repositories import (
     CategoryRepository,
     ItemRepository,
@@ -18,6 +18,7 @@ from ebay_watchlist.db.repositories import (
 from ebay_watchlist.db.utils import ensure_schema_compatibility
 from ebay_watchlist.ebay.api import EbayAPI
 from ebay_watchlist.notifications.service import NotificationService
+from ebay_watchlist.settings import load_settings
 from ebay_watchlist.web.app import create_app
 
 app = typer.Typer(no_args_is_help=True)
@@ -35,27 +36,19 @@ def fetch_updates(limit: int = 100):
     Gets the latest items for every configured seller and category.
     Prints the newly inserted items to the terminal
     """
-    EBAY_CLIENT_ID = os.getenv("EBAY_CLIENT_ID")
-    EBAY_CLIENT_SECRET = os.getenv("EBAY_CLIENT_SECRET")
-    EBAY_MARKETPLACE_ID = os.getenv("EBAY_MARKETPLACE_ID", "EBAY_GB")
-    ENABLE_NOTIFICATIONS = os.getenv("ENABLE_NOTIFICATIONS", "False").lower() in (
-        "true",
-        "1",
-        "t",
-    )
-    if not EBAY_CLIENT_ID or not EBAY_CLIENT_SECRET:
-        raise ValueError("EBAY_CLIENT_ID and EBAY_CLIENT_SECRET must be set")
+    settings = load_settings()
+    ebay_client_id, ebay_client_secret = settings.require_ebay_credentials()
 
     run_start_date = datetime.now()
-    api = EbayAPI(EBAY_CLIENT_ID, EBAY_CLIENT_SECRET, EBAY_MARKETPLACE_ID)
-    notification_service = NotificationService()
+    api = EbayAPI(ebay_client_id, ebay_client_secret, settings.ebay_marketplace_id)
+    notification_service = NotificationService(settings=settings)
     watched_sellers = SellerRepository.get_enabled_sellers()
     enabled_categories = CategoryRepository.get_enabled_categories()
 
     for category_id in enabled_categories:
         logger.info(
             "Fetch context: database=%s category_id=%s watched_sellers_count=%s watched_sellers=%s",
-            DATABASE_URL,
+            settings.database_url,
             category_id,
             len(watched_sellers),
             watched_sellers,
@@ -90,7 +83,7 @@ def fetch_updates(limit: int = 100):
 
     if created_items:
         display_db_items(created_items)
-        if ENABLE_NOTIFICATIONS:
+        if settings.enable_notifications:
             notification_service.notify_new_items(created_items)
 
 
@@ -194,6 +187,8 @@ def run_gunicorn(
 
 def main():
     load_dotenv()
+    settings = load_settings()
+    configure_database(settings)
     database.connect(reuse_if_open=True)
     ensure_schema_compatibility()
     try:

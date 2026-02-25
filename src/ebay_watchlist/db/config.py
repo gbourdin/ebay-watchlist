@@ -1,9 +1,22 @@
-import os
-
-from dotenv import load_dotenv
 from playhouse.sqlite_ext import SqliteExtDatabase
 
-load_dotenv()
-DATABASE_URL = os.getenv("DATABASE_URL", ":memory:")
+from ebay_watchlist.settings import Settings, load_settings
 
-database = SqliteExtDatabase(DATABASE_URL)
+database = SqliteExtDatabase(None)
+
+
+def get_database_url(settings: Settings | None = None) -> str:
+    active_settings = settings if settings is not None else load_settings()
+    return active_settings.database_url
+
+
+def configure_database(settings: Settings | None = None) -> str:
+    database_url = get_database_url(settings)
+    current_url = str(getattr(database, "database", "") or "")
+
+    if current_url != database_url:
+        if not database.is_closed():
+            database.close()
+        database.init(database_url)
+
+    return database_url
