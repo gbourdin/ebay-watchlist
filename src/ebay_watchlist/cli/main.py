@@ -1,3 +1,4 @@
+import logging
 import os
 from datetime import datetime, timedelta
 from time import sleep
@@ -25,6 +26,7 @@ DEFAULT_CLEANUP_RETENTION_DAYS = 180
 DEFAULT_CLEANUP_INTERVAL_MINUTES = 24 * 60
 FETCH_INTERVAL_SECONDS = 600
 DEFAULT_GUNICORN_WORKERS = 2
+logger = logging.getLogger(__name__)
 
 
 @app.command()
@@ -51,25 +53,31 @@ def fetch_updates(limit: int = 100):
     enabled_categories = CategoryRepository.get_enabled_categories()
 
     for category_id in enabled_categories:
-        print_with_timestamp(
-            "Fetch context: "
-            f"database={DATABASE_URL} "
-            f"category_id={category_id} "
-            f"watched_sellers_count={len(watched_sellers)} "
-            f"watched_sellers={watched_sellers}"
+        logger.info(
+            "Fetch context: database=%s category_id=%s watched_sellers_count=%s watched_sellers=%s",
+            DATABASE_URL,
+            category_id,
+            len(watched_sellers),
+            watched_sellers,
         )
         items = api.get_latest_items_for_sellers(
             seller_names=watched_sellers,
             category_id=category_id,
             limit=limit,
         )
-        response_sellers = sorted({item.seller.username for item in items})
-        print_with_timestamp(
-            "Fetch response: "
-            f"category_id={category_id} "
-            f"response_items_count={len(items)} "
-            f"unique_sellers_count={len(response_sellers)} "
-            f"unique_sellers={response_sellers}"
+        response_sellers = sorted(
+            {
+                item.seller.username
+                for item in items
+                if getattr(getattr(item, "seller", None), "username", None)
+            }
+        )
+        logger.info(
+            "Fetch response: category_id=%s response_items_count=%s unique_sellers_count=%s unique_sellers=%s",
+            category_id,
+            len(items),
+            len(response_sellers),
+            response_sellers,
         )
 
         for item in items:
